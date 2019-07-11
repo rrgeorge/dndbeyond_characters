@@ -1,0 +1,591 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 50;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		DAABE72322D6C6380018691D /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAABE72222D6C6380018691D /* AppDelegate.swift */; };
+		DAABE72522D6C6380018691D /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAABE72422D6C6380018691D /* ViewController.swift */; };
+		DAABE72822D6C6380018691D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = DAABE72622D6C6380018691D /* Main.storyboard */; };
+		DAABE72A22D6C63D0018691D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = DAABE72922D6C63D0018691D /* Assets.xcassets */; };
+		DAABE72D22D6C63D0018691D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = DAABE72B22D6C63D0018691D /* LaunchScreen.storyboard */; };
+		DAABE73822D6C63D0018691D /* D_D_Beyond_CharactersTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAABE73722D6C63D0018691D /* D_D_Beyond_CharactersTests.swift */; };
+		DAABE74322D6C63D0018691D /* D_D_Beyond_CharactersUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAABE74222D6C63D0018691D /* D_D_Beyond_CharactersUITests.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		DAABE73422D6C63D0018691D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = DAABE71722D6C6380018691D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = DAABE71E22D6C6380018691D;
+			remoteInfo = "D&D Beyond Characters";
+		};
+		DAABE73F22D6C63D0018691D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = DAABE71722D6C6380018691D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = DAABE71E22D6C6380018691D;
+			remoteInfo = "D&D Beyond Characters";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		DAABE71F22D6C6380018691D /* D&D Beyond Characters.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "D&D Beyond Characters.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		DAABE72222D6C6380018691D /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		DAABE72422D6C6380018691D /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
+		DAABE72722D6C6380018691D /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		DAABE72922D6C63D0018691D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		DAABE72C22D6C63D0018691D /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		DAABE72E22D6C63D0018691D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		DAABE73322D6C63D0018691D /* D&D Beyond CharactersTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "D&D Beyond CharactersTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		DAABE73722D6C63D0018691D /* D_D_Beyond_CharactersTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = D_D_Beyond_CharactersTests.swift; sourceTree = "<group>"; };
+		DAABE73922D6C63D0018691D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		DAABE73E22D6C63D0018691D /* D&D Beyond CharactersUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "D&D Beyond CharactersUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		DAABE74222D6C63D0018691D /* D_D_Beyond_CharactersUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = D_D_Beyond_CharactersUITests.swift; sourceTree = "<group>"; };
+		DAABE74422D6C63D0018691D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		DAABE71C22D6C6380018691D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DAABE73022D6C63D0018691D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DAABE73B22D6C63D0018691D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		DAABE71622D6C6380018691D = {
+			isa = PBXGroup;
+			children = (
+				DAABE72122D6C6380018691D /* D&D Beyond Characters */,
+				DAABE73622D6C63D0018691D /* D&D Beyond CharactersTests */,
+				DAABE74122D6C63D0018691D /* D&D Beyond CharactersUITests */,
+				DAABE72022D6C6380018691D /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		DAABE72022D6C6380018691D /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				DAABE71F22D6C6380018691D /* D&D Beyond Characters.app */,
+				DAABE73322D6C63D0018691D /* D&D Beyond CharactersTests.xctest */,
+				DAABE73E22D6C63D0018691D /* D&D Beyond CharactersUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		DAABE72122D6C6380018691D /* D&D Beyond Characters */ = {
+			isa = PBXGroup;
+			children = (
+				DAABE72222D6C6380018691D /* AppDelegate.swift */,
+				DAABE72422D6C6380018691D /* ViewController.swift */,
+				DAABE72622D6C6380018691D /* Main.storyboard */,
+				DAABE72922D6C63D0018691D /* Assets.xcassets */,
+				DAABE72B22D6C63D0018691D /* LaunchScreen.storyboard */,
+				DAABE72E22D6C63D0018691D /* Info.plist */,
+			);
+			path = "D&D Beyond Characters";
+			sourceTree = "<group>";
+		};
+		DAABE73622D6C63D0018691D /* D&D Beyond CharactersTests */ = {
+			isa = PBXGroup;
+			children = (
+				DAABE73722D6C63D0018691D /* D_D_Beyond_CharactersTests.swift */,
+				DAABE73922D6C63D0018691D /* Info.plist */,
+			);
+			path = "D&D Beyond CharactersTests";
+			sourceTree = "<group>";
+		};
+		DAABE74122D6C63D0018691D /* D&D Beyond CharactersUITests */ = {
+			isa = PBXGroup;
+			children = (
+				DAABE74222D6C63D0018691D /* D_D_Beyond_CharactersUITests.swift */,
+				DAABE74422D6C63D0018691D /* Info.plist */,
+			);
+			path = "D&D Beyond CharactersUITests";
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		DAABE71E22D6C6380018691D /* D&D Beyond Characters */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = DAABE74722D6C63D0018691D /* Build configuration list for PBXNativeTarget "D&D Beyond Characters" */;
+			buildPhases = (
+				DAABE71B22D6C6380018691D /* Sources */,
+				DAABE71C22D6C6380018691D /* Frameworks */,
+				DAABE71D22D6C6380018691D /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "D&D Beyond Characters";
+			productName = "D&D Beyond Characters";
+			productReference = DAABE71F22D6C6380018691D /* D&D Beyond Characters.app */;
+			productType = "com.apple.product-type.application";
+		};
+		DAABE73222D6C63D0018691D /* D&D Beyond CharactersTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = DAABE74A22D6C63D0018691D /* Build configuration list for PBXNativeTarget "D&D Beyond CharactersTests" */;
+			buildPhases = (
+				DAABE72F22D6C63D0018691D /* Sources */,
+				DAABE73022D6C63D0018691D /* Frameworks */,
+				DAABE73122D6C63D0018691D /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				DAABE73522D6C63D0018691D /* PBXTargetDependency */,
+			);
+			name = "D&D Beyond CharactersTests";
+			productName = "D&D Beyond CharactersTests";
+			productReference = DAABE73322D6C63D0018691D /* D&D Beyond CharactersTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		DAABE73D22D6C63D0018691D /* D&D Beyond CharactersUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = DAABE74D22D6C63D0018691D /* Build configuration list for PBXNativeTarget "D&D Beyond CharactersUITests" */;
+			buildPhases = (
+				DAABE73A22D6C63D0018691D /* Sources */,
+				DAABE73B22D6C63D0018691D /* Frameworks */,
+				DAABE73C22D6C63D0018691D /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				DAABE74022D6C63D0018691D /* PBXTargetDependency */,
+			);
+			name = "D&D Beyond CharactersUITests";
+			productName = "D&D Beyond CharactersUITests";
+			productReference = DAABE73E22D6C63D0018691D /* D&D Beyond CharactersUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		DAABE71722D6C6380018691D /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastSwiftUpdateCheck = 1020;
+				LastUpgradeCheck = 1020;
+				ORGANIZATIONNAME = "Robert George";
+				TargetAttributes = {
+					DAABE71E22D6C6380018691D = {
+						CreatedOnToolsVersion = 10.2.1;
+					};
+					DAABE73222D6C63D0018691D = {
+						CreatedOnToolsVersion = 10.2.1;
+						TestTargetID = DAABE71E22D6C6380018691D;
+					};
+					DAABE73D22D6C63D0018691D = {
+						CreatedOnToolsVersion = 10.2.1;
+						TestTargetID = DAABE71E22D6C6380018691D;
+					};
+				};
+			};
+			buildConfigurationList = DAABE71A22D6C6380018691D /* Build configuration list for PBXProject "D&D Beyond Characters" */;
+			compatibilityVersion = "Xcode 9.3";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = DAABE71622D6C6380018691D;
+			productRefGroup = DAABE72022D6C6380018691D /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				DAABE71E22D6C6380018691D /* D&D Beyond Characters */,
+				DAABE73222D6C63D0018691D /* D&D Beyond CharactersTests */,
+				DAABE73D22D6C63D0018691D /* D&D Beyond CharactersUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		DAABE71D22D6C6380018691D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DAABE72D22D6C63D0018691D /* LaunchScreen.storyboard in Resources */,
+				DAABE72A22D6C63D0018691D /* Assets.xcassets in Resources */,
+				DAABE72822D6C6380018691D /* Main.storyboard in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DAABE73122D6C63D0018691D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DAABE73C22D6C63D0018691D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		DAABE71B22D6C6380018691D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DAABE72522D6C6380018691D /* ViewController.swift in Sources */,
+				DAABE72322D6C6380018691D /* AppDelegate.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DAABE72F22D6C63D0018691D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DAABE73822D6C63D0018691D /* D_D_Beyond_CharactersTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DAABE73A22D6C63D0018691D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DAABE74322D6C63D0018691D /* D_D_Beyond_CharactersUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		DAABE73522D6C63D0018691D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = DAABE71E22D6C6380018691D /* D&D Beyond Characters */;
+			targetProxy = DAABE73422D6C63D0018691D /* PBXContainerItemProxy */;
+		};
+		DAABE74022D6C63D0018691D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = DAABE71E22D6C6380018691D /* D&D Beyond Characters */;
+			targetProxy = DAABE73F22D6C63D0018691D /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin PBXVariantGroup section */
+		DAABE72622D6C6380018691D /* Main.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				DAABE72722D6C6380018691D /* Base */,
+			);
+			name = Main.storyboard;
+			sourceTree = "<group>";
+		};
+		DAABE72B22D6C63D0018691D /* LaunchScreen.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				DAABE72C22D6C63D0018691D /* Base */,
+			);
+			name = LaunchScreen.storyboard;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		DAABE74522D6C63D0018691D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 12.2;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		DAABE74622D6C63D0018691D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 12.2;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		DAABE74822D6C63D0018691D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 97869B6X2R;
+				INFOPLIST_FILE = "D&D Beyond Characters/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "net.midnightweb.D-D-Beyond-Characters";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		DAABE74922D6C63D0018691D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 97869B6X2R;
+				INFOPLIST_FILE = "D&D Beyond Characters/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "net.midnightweb.D-D-Beyond-Characters";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		DAABE74B22D6C63D0018691D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 97869B6X2R;
+				INFOPLIST_FILE = "D&D Beyond CharactersTests/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "net.midnightweb.D-D-Beyond-CharactersTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/D&D Beyond Characters.app/D&D Beyond Characters";
+			};
+			name = Debug;
+		};
+		DAABE74C22D6C63D0018691D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 97869B6X2R;
+				INFOPLIST_FILE = "D&D Beyond CharactersTests/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "net.midnightweb.D-D-Beyond-CharactersTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/D&D Beyond Characters.app/D&D Beyond Characters";
+			};
+			name = Release;
+		};
+		DAABE74E22D6C63D0018691D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 97869B6X2R;
+				INFOPLIST_FILE = "D&D Beyond CharactersUITests/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "net.midnightweb.D-D-Beyond-CharactersUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = "D&D Beyond Characters";
+			};
+			name = Debug;
+		};
+		DAABE74F22D6C63D0018691D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 97869B6X2R;
+				INFOPLIST_FILE = "D&D Beyond CharactersUITests/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "net.midnightweb.D-D-Beyond-CharactersUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = "D&D Beyond Characters";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		DAABE71A22D6C6380018691D /* Build configuration list for PBXProject "D&D Beyond Characters" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DAABE74522D6C63D0018691D /* Debug */,
+				DAABE74622D6C63D0018691D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		DAABE74722D6C63D0018691D /* Build configuration list for PBXNativeTarget "D&D Beyond Characters" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DAABE74822D6C63D0018691D /* Debug */,
+				DAABE74922D6C63D0018691D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		DAABE74A22D6C63D0018691D /* Build configuration list for PBXNativeTarget "D&D Beyond CharactersTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DAABE74B22D6C63D0018691D /* Debug */,
+				DAABE74C22D6C63D0018691D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		DAABE74D22D6C63D0018691D /* Build configuration list for PBXNativeTarget "D&D Beyond CharactersUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DAABE74E22D6C63D0018691D /* Debug */,
+				DAABE74F22D6C63D0018691D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = DAABE71722D6C6380018691D /* Project object */;
+}
