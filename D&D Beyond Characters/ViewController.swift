@@ -20,7 +20,7 @@ struct modifier : Codable {
     let damagetype:String?
 }
 
-class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIGestureRecognizerDelegate {
+class ViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, UIActionSheetDelegate, UIGestureRecognizerDelegate {
 
     var webView: WKWebView!
     var pinchGesture: UIPinchGestureRecognizer!
@@ -35,6 +35,7 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
         webConfiguration.dataDetectorTypes = []
         webView = WKWebView(frame: .zero, configuration: webConfiguration)
         webView.uiDelegate = self
+        webView.navigationDelegate = self
         webView.frame = view.frame
         view.addSubview(webView)
         webView.translatesAutoresizingMaskIntoConstraints = false
@@ -42,6 +43,8 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
         webView.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor).isActive = true
         webView.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor).isActive = true
         webView.bottomAnchor.constraint(equalTo: view.bottomAnchor).isActive = true
+        //webView.topAnchor.constraint(equalTo: view.topAnchor).isActive = true
+        webView.scrollView.contentInsetAdjustmentBehavior = .never
         
         let myURL = URL(string:"https://www.dndbeyond.com/my-characters")
         let myRequest = URLRequest(url: myURL!)
@@ -70,7 +73,11 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
     override var prefersHomeIndicatorAutoHidden: Bool {
         return true
     }
-    
+
+    override var prefersStatusBarHidden: Bool {
+        return true
+    }
+
     override func motionEnded(_ motion: UIEvent.EventSubtype, with event: UIEvent?) {
         if motion == .motionShake && checkIfCharacterSheet(wV: webView){
             let js = """
@@ -148,6 +155,11 @@ var callback = function(mutationsList, observer) {
     if (charBHeader[0]) { charBHeader[0].style.top = 0; }
     var popoutmenu = document.getElementsByClassName("ct-popout-menu");
     if (popoutmenu[0] && !document.getElementById("backtolistitem")) {
+        for(var i=0,len=popoutmenu[0].children.length;i<len;i++){
+            if (popoutmenu[0].children[i].children[0] && popoutmenu[0].children[i].children[0].tagName == "FORM") {
+                popoutmenu[0].children[i].remove();
+            }
+        }
         var menuitem = document.createElement("div");
         var menuitema = document.createElement("div");
         var menuitemb = document.createElement("div");
