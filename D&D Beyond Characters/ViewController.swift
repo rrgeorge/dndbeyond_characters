@@ -18,13 +18,16 @@ struct modifier : Codable {
     let tohit:Int?
     let damage:String?
     let damagetype:String?
+    let builder:Bool?
 }
 
-class ViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, UIActionSheetDelegate, UIGestureRecognizerDelegate {
+
+class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIGestureRecognizerDelegate {
 
     var webView: WKWebView!
     var pinchGesture: UIPinchGestureRecognizer!
-    
+    var swipeGesture: UISwipeGestureRecognizer!
+
     var modifiers = [modifier]()
     
     override func viewDidLoad() {
@@ -33,6 +36,10 @@ class ViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, UIAc
         let webDataStore = WKWebsiteDataStore.default()
         webConfiguration.websiteDataStore = webDataStore
         webConfiguration.dataDetectorTypes = []
+        let contentController = WKUserContentController()
+        contentController.add(self,name: "captureCall")
+        webConfiguration.userContentController = contentController
+
         webView = WKWebView(frame: .zero, configuration: webConfiguration)
         webView.uiDelegate = self
         webView.navigationDelegate = self
@@ -45,29 +52,23 @@ class ViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, UIAc
         webView.bottomAnchor.constraint(equalTo: view.bottomAnchor).isActive = true
         //webView.topAnchor.constraint(equalTo: view.topAnchor).isActive = true
         webView.scrollView.contentInsetAdjustmentBehavior = .never
-        
-        let myURL = URL(string:"https://www.dndbeyond.com/my-characters")
-        let myRequest = URLRequest(url: myURL!)
-        webView.load(myRequest)
+        let defaults = UserDefaults.standard
+        let myURL = defaults.url(forKey: "activeURL") ?? URL(string:"https://www.dndbeyond.com/my-characters")
 
-        pinchGesture = UIPinchGestureRecognizer(target: self, action: #selector(self.pinchRecognized(_:)))
-        pinchGesture.delegate = self
-        self.view.addGestureRecognizer(pinchGesture)
-        
+        let myRequest = URLRequest(url: myURL!)
+        if webView.url == nil {
+            loadStaticPage()
+            webView.load(myRequest)
+        }
         webView.addObserver(self, forKeyPath: #keyPath(WKWebView.estimatedProgress), options: .new, context: nil)
         webView.addObserver(self, forKeyPath: #keyPath(WKWebView.isLoading), options: .new, context: nil)
-        
-    }
-    
-    @objc func pinchRecognized(_ pinch: UIPinchGestureRecognizer) {
-        returnHome()
+        webView.addObserver(self, forKeyPath: #keyPath(WKWebView.url), options: .new, context: nil)
     }
     
     func returnHome() {
-        //let myURL = URL(string:"https://www.dndbeyond.com/my-characters")
-        //let myRequest = URLRequest(url: myURL!)
-        //webView.load(myRequest)
-        webView.goBack()
+        let myURL = URL(string:"https://www.dndbeyond.com/my-characters")
+        let myRequest = URLRequest(url: myURL!)
+        webView.load(myRequest)
     }
     
     override var prefersHomeIndicatorAutoHidden: Bool {
@@ -80,42 +81,13 @@ class ViewController: UIViewController, WKUIDelegate, WKNavigationDelegate, UIAc
 
     override func motionEnded(_ motion: UIEvent.EventSubtype, with event: UIEvent?) {
         if motion == .motionShake && checkIfCharacterSheet(wV: webView){
-            let js = """
-var mods=Array();
-var abilities=document.getElementsByClassName('ct-ability-summary');
-var saves=document.getElementsByClassName('ct-saving-throws-summary');
-if (saves[0]) saves=saves[0].children;
-for(var i=0,len=abilities.length;i<len;i++){
-    (mod=new Object).stat=abilities[i].children[0].children[1].innerText;
-    for(var s=0,slen=saves.length;s<slen;s++)
-        if(saves[s].children[1].innerText.toUpperCase()===mod.stat.toUpperCase()){
-            var smod=saves[s].children[2].children[0].children;
-            mod.save=Number(smod[0].innerText+smod[1].innerText)
+            parseToRollDice()
         }
-        var modifier=abilities[i].children[1].children[0].children;
-        mod.modifier=Number(modifier[0].innerText+modifier[1].innerText);
-        mods.push(mod)
-}
-var skills=document.getElementsByClassName('ct-skills__item');
-for(i=0,len=skills.length;i<len;i++){
-    var mod;
-    (mod=new Object).skill=skills[i].children[2].innerText;
-    var modifier=skills[i].children[3].children[0].children;
-    mod.modifier=Number(modifier[0].innerText+modifier[1].innerText);
-    mods.push(mod);
-}
-var attacks=document.getElementsByClassName('ct-combat-attack');
-for(i=0,len=attacks.length;i<len;i++){
-    var mod;
-    (mod=new Object).attack=attacks[i].children[1].children[0].innerText;
-    var modifier=attacks[i].children[3].children[0].children[0].children;
-    mod.tohit=Number(modifier[0].innerText+modifier[1].innerText);
-    mod.damage=attacks[i].children[4].innerText.trim();
-    if (attacks[i].getElementsByClassName("ct-tooltip")[0]) mod.damagetype =attacks[i].getElementsByClassName("ct-tooltip")[0].getAttribute("data-original-title")
-    mods.push(mod);
-}
-JSON.stringify(mods);
-"""
+    }
+    
+    func parseToRollDice () {
+        do {
+            let js = try String(contentsOfFile: Bundle.main.path(forResource: "diceparser", ofType: "js")!) + "\nJSON.stringify(mods);\n"
             webView.evaluateJavaScript(js) { mods,error in
                 do {
                     let decoder = JSONDecoder()
@@ -126,6 +98,8 @@ JSON.stringify(mods);
                     print(error)
                 }
             }
+        } catch {
+            print ("MISSING DICE PARSER")
         }
     }
     
@@ -133,78 +107,65 @@ JSON.stringify(mods);
 
         if keyPath == "estimatedProgress" {
             if Float(webView.estimatedProgress) == 1 {
-                let js = """
-var config = { attributes: true, childList: true, subtree: true };
-
-var callback = function(mutationsList, observer) {
-    var siteBar = document.getElementsByClassName('site-bar');
-    var siteHeader = document.getElementsByClassName('main');
-    if (siteBar[0]) {
-        siteBar[0].remove()
-    }
-    if (siteHeader[0] && siteHeader[0].id != "content") {
-        siteHeader[0].remove();
-    }
-    var headerSize = parseInt(window.getComputedStyle(document.getElementById('site-main')).paddingTop);
-    document.getElementById('site-main').style.paddingTop = 0;
-    var charSheet = document.getElementsByClassName('ct-character-sheet-mobile');
-    if (charSheet[0]) { var padding = parseInt(window.getComputedStyle(charSheet[0]).paddingTop); charSheet[0].style.paddingTop = padding - headerSize; }
-    var charHeader = document.getElementsByClassName('ct-character-sheet-mobile__header');
-    if (charHeader[0]) { charHeader[0].style.top = 0; }
-    var charBHeader = document.getElementsByClassName('builder-sections');
-    if (charBHeader[0]) { charBHeader[0].style.top = 0; }
-    var popoutmenu = document.getElementsByClassName("ct-popout-menu");
-    if (popoutmenu[0] && !document.getElementById("backtolistitem")) {
-        for(var i=0,len=popoutmenu[0].children.length;i<len;i++){
-            if (popoutmenu[0].children[i].children[0] && popoutmenu[0].children[i].children[0].tagName == "FORM") {
-                popoutmenu[0].children[i].remove();
+                do {
+                    let js = try String(contentsOfFile: Bundle.main.path(forResource: "prep", ofType: "js")!)
+                    self.webView.evaluateJavaScript(js)
+                    if (self.checkIfCharacterSheet(wV: webView)) {
+                        let imgjs = try String(contentsOfFile: Bundle.main.path(forResource: "imgpreload", ofType: "js")!)
+                        self.webView.evaluateJavaScript(imgjs) { result, error in
+                            if self.webView.url != nil && !(self.webView.url?.absoluteString.hasSuffix(".webarchive"))! {
+                                self.makeWebArchive(result as! Array<String>,self.webView.url!)
+                            }
+                        }
+                    }
+                } catch {
+                    print ("MISSING ASSETS")
+                }
             }
-        }
-        var menuitem = document.createElement("div");
-        var menuitema = document.createElement("div");
-        var menuitemb = document.createElement("div");
-        var menuicon = document.createElement("i");
-        menuitem.id = "backtolistitem";
-        menuitem.className = "ct-popout-menu__item"
-        menuicon.className = "i-menu-portrait";
-        menuitema.className = "ct-popout-menu__item-preview";
-        menuitemb.className = "ct-popout-menu__item-label";
-        menuitemb.innerText="Character List";
-        menuitema.appendChild(menuicon);
-        menuitem.appendChild(menuitema);
-        menuitem.appendChild(menuitemb);
-        popoutmenu[0].appendChild(menuitem);
-        menuitem.addEventListener("click", function(){window.location='/my-characters';});
-    }
-}
-setTimeout(1000,callback.call());
-var observer = new MutationObserver(callback);
-observer.observe(document, config);
-"""
-                self.webView.evaluateJavaScript(js)
+        } else if keyPath == "URL" {
+            if let url = webView.url {
+                let range = NSRange(location: 0, length: (url.absoluteString as NSString).length)
+                let regex = try! NSRegularExpression(pattern: "http[s]?:\\/\\/(www\\.)?dndbeyond.com[\\/]?$")
+                let matches = regex.numberOfMatches(in: url.absoluteString, options: [], range: range)
+                if matches > 0 {
+                    let myURL = URL(string:"https://www.dndbeyond.com/my-characters")
+                    let myRequest = URLRequest(url: myURL!)
+                    webView.load(myRequest)
+                } else {
+                    saveCurrentURL(theURL: webView.url?.absoluteString)
+                }
             }
         }
     }
     
     func checkIfCharacterSheet(wV: WKWebView) -> Bool {
-        let url = wV.url!
-        let range = NSRange(location: 0, length: (url.absoluteString as NSString).length)
-        let regex = try! NSRegularExpression(pattern: "http[s]?:\\/\\/(www\\.)?dndbeyond.com\\/profile\\/([^\\/]*)\\/characters\\/.*")
-        let matches = regex.numberOfMatches(in: url.absoluteString, options: [], range: range)
-        if matches > 0 {
-            return true
+        if let url = wV.url {
+            if (wV.url?.absoluteString.hasSuffix(".webarchive"))! && (wV.url?.absoluteString.hasPrefix("file://"))! {
+                return true
+            }
+            let range = NSRange(location: 0, length: (url.absoluteString as NSString).length)
+            let regex = try! NSRegularExpression(pattern: "http[s]?:\\/\\/(www\\.)?dndbeyond.com\\/profile\\/([^\\/]*)\\/characters\\/[^\\/]*")
+            let matches = regex.numberOfMatches(in: url.absoluteString, options: [], range: range)
+            if matches > 0 {
+                return true
+            } else {
+                return false
+            }
         } else {
-            return false
+            return true
         }
     }
     
     func checkIfCharacterSheetBuilderScores(wV: WKWebView) -> Bool {
-        let url = wV.url!
-        let range = NSRange(location: 0, length: (url.absoluteString as NSString).length)
-        let regex = try! NSRegularExpression(pattern: "http[s]?:\\/\\/(www\\.)?dndbeyond.com\\/profile\\/([^\\/]*)\\/characters\\/.*ability-scores\\/.*")
-        let matches = regex.numberOfMatches(in: url.absoluteString, options: [], range: range)
-        if matches > 0 {
-            return true
+        if let url = wV.url {
+            let range = NSRange(location: 0, length: (url.absoluteString as NSString).length)
+            let regex = try! NSRegularExpression(pattern: "http[s]?:\\/\\/(www\\.)?dndbeyond.com\\/profile\\/([^\\/]*)\\/characters\\/.*ability-scores\\/.*")
+            let matches = regex.numberOfMatches(in: url.absoluteString, options: [], range: range)
+            if matches > 0 {
+                return true
+            } else {
+                return false
+            }
         } else {
             return false
         }
@@ -220,55 +181,167 @@ observer.observe(document, config);
         } else {
             dieRoll = "You rolled " + String(rolled + mod)
         }
-        if mod != 0 {
+        if mod > 0 {
             dieRoll += "\n" + "(Rolled: " + String(rolled) + "+" + String(mod) + ")"
+        } else if mod < 0 {
+            dieRoll += "\n" + "(Rolled: " + String(rolled) + String(mod) + ")"
         }
         let rollDialog = UIAlertController(title: roll, message: dieRoll,preferredStyle: .alert)
         rollDialog.addAction(UIAlertAction(title: "Thanks!", style: UIAlertAction.Style.default, handler: nil))
         rollDialog.view.addSubview(UIView())
+        rollDialog.popoverPresentationController?.sourceView = self.view
         self.present(rollDialog, animated: true, completion: nil)
     }
     
+    func askHowManyToRoll(roll: String, die: Int) {
+        let rollDialog = UIAlertController(title: roll, message: "How many D" + String(die) + "s?",preferredStyle: .alert)
+        rollDialog.addTextField() {textField in
+            textField.text = "1";
+            textField.keyboardType = .numberPad
+            textField.delegate = self
+        }
+        rollDialog.addAction(UIAlertAction(title: "Cancel", style: UIAlertAction.Style.default, handler: nil))
+        rollDialog.addAction(UIAlertAction(title: "Roll!", style: UIAlertAction.Style.default, handler: {action in
+            let diceStr = rollDialog.textFields?.first?.text ?? "1"
+            var dice = Int(diceStr) ?? 1
+            if dice > 999 { dice = 999 }
+            else if dice < 1 { dice = 1 }
+            self.rollSomeDice(roll: "Roll " + String(dice) + "d" + String(die), die: die,dice:dice)
+        }))
+        rollDialog.popoverPresentationController?.sourceView = self.view
+        self.present(rollDialog, animated: true, completion: {rollDialog.textFields?.first?.becomeFirstResponder()
+            rollDialog.textFields?.first?.selectAll(nil)})
+
+    }
+    
+    func customRoll(roll: String) {
+        let rollDialog = UIAlertController(title: roll, message: "Enter the dice you want to roll",preferredStyle: .alert)
+        rollDialog.addTextField() {textField in
+            textField.keyboardType = .numberPad
+            textField.placeholder = "Number of Dice"
+            textField.delegate = self
+        }
+        rollDialog.addTextField() {textField in
+            textField.keyboardType = .numberPad
+            textField.placeholder = "Number of Sides"
+            textField.delegate = self
+        }
+        rollDialog.addAction(UIAlertAction(title: "Cancel", style: UIAlertAction.Style.default, handler: nil))
+        rollDialog.addAction(UIAlertAction(title: "Roll!", style: UIAlertAction.Style.default, handler: {action in
+            let diceStr = rollDialog.textFields?.first?.text ?? "1"
+            var dice = Int(diceStr) ?? 1
+            if dice > 999 { dice = 999 }
+            else if dice < 1 { dice = 1 }
+            let dieStr = rollDialog.textFields?.last?.text ?? "1"
+            var die = Int(dieStr) ?? 1
+            if die > 999 { die = 999 }
+            else if dice < 1 { dice = 1 }
+            self.rollSomeDice(roll: "Roll " + String(dice) + "d" + String(die), die: die,dice:dice)
+        }))
+        rollDialog.popoverPresentationController?.sourceView = self.view
+        self.present(rollDialog, animated: true, completion: {rollDialog.textFields?.first?.becomeFirstResponder()
+            rollDialog.textFields?.first?.selectAll(nil)})
+        
+    }
+
     func rollSomeDice(roll: String, die: Int, dice: Int) {
         var rolledString = ""
         var rolled = 0
         var rolledDice: [Int] = []
-        var dropped = -1
-        if (dice == -3) {
-            for _ in 1...4 {
-                rolledDice.append(Int.random(in: 1...die))
-            }
-            rolledDice.sort(by: >)
-            dropped = rolledDice.popLast() ?? 0
-            rolled = rolledDice.reduce(0, +)
-        } else {
-            for _ in 1...dice {
-                rolledDice.append(Int.random(in: 1...die))
-                if rolledString != "" {
-                    rolledString += "+"
+        var theRoll = "You rolled "
+        var resultAction = UIAlertAction(title: "Thanks!", style: UIAlertAction.Style.default, handler: nil)
+        if checkIfCharacterSheetBuilderScores(wV: webView) {
+            var dropped = -1
+            var theRolls: [Int] = []
+            var count = 6
+            var title = "Roll for Abilities"
+            let js = "var element = document.activeElement;\n"
+                + "(element.tagName == \"INPUT\" && element.className == \"builder-field-value\");"
+            webView.evaluateJavaScript(js) { ability,error in
+                let abilitySelected = ability as? Int ?? 0
+                if abilitySelected == 1 {
+                    count = 1
                 }
-                rolled = rolledDice.reduce(0, +)
-                rolledString += String(rolled)
+                theRoll = "You rolled:"
+                for _ in 1...count {
+                    rolledDice.removeAll()
+                    for _ in 1...dice {
+                        rolledDice.append(Int.random(in: 1...die))
+                    }
+                    if dice == 4 {
+                        rolledDice.sort(by: >)
+                        dropped = rolledDice.popLast() ?? 0
+                    }
+                    rolled = rolledDice.reduce(0, +)
+                    rolledString = rolledDice.map(String.init).joined(separator: "+")
+                    if dropped > 0 {
+                        rolledString += ", dropped " + String(dropped)
+                    }
+                    theRolls.append(rolled)
+                    theRoll += "\n" + String(rolled) + " (Rolled: " + rolledString + ")"
+                }
+                if (count == 1) {
+                    title = "Roll for an Ability"
+                    resultAction = UIAlertAction(title: "Thanks!", style: UIAlertAction.Style.default, handler: {action in self.tryToInputStat(stat: String(theRolls[0]))})
+                } else {
+                    resultAction = UIAlertAction(title: "Thanks!", style: UIAlertAction.Style.default, handler: {action in self.tryToInputStats(stat: theRolls)})
+                }
+                let rollDialog = UIAlertController(title: title, message: theRoll,preferredStyle: .alert)
+                rollDialog.addAction(resultAction)
+                rollDialog.popoverPresentationController?.sourceView = self.view
+                self.present(rollDialog, animated: true, completion: nil)
             }
-        }
-        var theRoll = "You rolled " + String(rolled)
-        if (rolledDice.count > 1) {
-            rolledString = rolledDice.map(String.init).joined(separator: "+")
-            if dropped > 0 {
-                rolledString += ", dropped " + String(dropped)
+        } else {
+            if (dice == 2 && die == 20) {
+                let a = Int.random(in: 1...20)
+                let d = Int.random(in: 1...20)
+                if a > d {
+                    theRoll = "Advantage:\t\t" + String(a) + "\nDisadvantage:\t" + String(d) + "\n\t\tTotal:\t" + String(a+d)
+                } else {
+                    theRoll = "Advantage:\t\t" + String(d) + "\nDisadvantage:\t" + String(a) + "\n\t\tTotal:\t" + String(a+d)
+                }
+            } else {
+                for _ in 1...dice {
+                    rolledDice.append(Int.random(in: 1...die))
+                    rolled = rolledDice.reduce(0, +)
+                }
+                theRoll += String(rolled)
+                if (rolledDice.count > 1) {
+                    rolledString = rolledDice.map(String.init).joined(separator: "+")
+                    theRoll += "\n(Rolled: " + rolledString + ")"
+                }
             }
-            theRoll += "\n(Rolled: " + rolledString + ")"
+            let rollDialog = UIAlertController(title: roll, message: theRoll,preferredStyle: .alert)
+            rollDialog.addAction(resultAction)
+            rollDialog.popoverPresentationController?.sourceView = self.view
+            self.present(rollDialog, animated: true, completion: nil)
         }
-        let rollDialog = UIAlertController(title: roll, message: theRoll,preferredStyle: .alert)
-        rollDialog.addAction(UIAlertAction(title: "Thanks!", style: UIAlertAction.Style.default, handler: {action in self.tryToInputStat(stat: String(rolled))}))
-        rollDialog.view.addSubview(UIView())
-        self.present(rollDialog, animated: true, completion: nil)
     }
     
     func tryToInputStat(stat: String) {
         let js = "var element = document.activeElement;\n"
             + "if (element.tagName == \"INPUT\" && element.className == \"builder-field-value\");\n"
             + "element.value=\"" + stat + "\";\n"
+        webView.evaluateJavaScript(js)
+    }
+    
+    func tryToInputStats(stat: [Int]) {
+        let js = "var stats = document.getElementsByClassName('builder-field-value');\n"
+            + "if (stats.length == 6) {\n"
+            + " stats[0].focus()\n"
+            + " stats[0].value = \"" + String(stat[0]) + "\"\n"
+            + " stats[1].focus()\n"
+            + " stats[1].value = \"" + String(stat[1]) + "\"\n"
+            + " stats[2].focus()\n"
+            + " stats[2].value = \"" + String(stat[2]) + "\"\n"
+            + " stats[3].focus()\n"
+            + " stats[3].value = \"" + String(stat[3]) + "\"\n"
+            + " stats[4].focus()\n"
+            + " stats[4].value = \"" + String(stat[4]) + "\"\n"
+            + " stats[5].focus()\n"
+            + " stats[5].value = \"" + String(stat[5]) + "\"\n"
+            + " stats[5].blur()\n"
+            + "}"
         webView.evaluateJavaScript(js)
     }
     
@@ -284,7 +357,9 @@ observer.observe(document, config);
         } else {
             dieRoll = "You rolled " + String(rolled + mod)
         }
-        if mod != 0 {
+        if mod > 0 {
+            dieRoll += "\n" + "(Rolled: " + String(rolled) + "+" + String(mod) + ")"
+        } else if mod < 0 {
             dieRoll += "\n" + "(Rolled: " + String(rolled) + "+" + String(mod) + ")"
         }
         if damage == "--" {
@@ -360,6 +435,7 @@ observer.observe(document, config);
         }
         rollDialog.addAction(UIAlertAction(title: "Thanks!", style: UIAlertAction.Style.default, handler: nil))
         rollDialog.view.addSubview(UIView())
+        rollDialog.popoverPresentationController?.sourceView = self.view
         self.present(rollDialog, animated: true, completion: nil)
     }
     
@@ -367,11 +443,12 @@ observer.observe(document, config);
         var rolled = 0
         var rolledString = ""
         for _ in 1...dice {
-            rolled += Int.random(in: 1...die)
+            let dieRolled = Int.random(in: 1...die)
+            rolled += dieRolled
             if rolledString != "" {
                 rolledString += "+"
             }
-            rolledString += String(rolled)
+            rolledString += String(dieRolled)
         }
         var dieRoll = String(rolled) + " " + damagetype + " Damage!"
         if mod != 0 {
@@ -385,12 +462,17 @@ observer.observe(document, config);
             dieRoll += "\n" + "(Rolled: " + rolledString + String(mod) + ")"
         } else if mod > 0 {
             dieRoll += "\n" + "(Rolled: " + rolledString + "+" + String(mod) + ")"
-        } else if (rolled + mod) <= 0 {
+        } else if dice > 1 {
             dieRoll += "\n" + "(Rolled: " + rolledString + ")"
+        }
+        if (roll.contains("Vicious Mockery")) {
+            let insult = VMInsults().insult
+            dieRoll = "\n" + insult + "\n\n" + dieRoll
         }
         let rollDialog = UIAlertController(title: roll, message: dieRoll,preferredStyle: .alert)
         rollDialog.addAction(UIAlertAction(title: "Thanks!", style: UIAlertAction.Style.default, handler: nil))
         rollDialog.view.addSubview(UIView())
+        rollDialog.popoverPresentationController?.sourceView = self.view
         self.present(rollDialog, animated: true, completion: nil)
     }
     
@@ -400,19 +482,48 @@ observer.observe(document, config);
             var item = "Roll!"
             if mod.attack != nil {
                 item = mod.attack ?? ""
-                rollDialog.addAction(UIAlertAction(title: item + " Attack", style: UIAlertAction.Style.default, handler: {action in self.rollAttack(roll: item + " Attack", mod: mod.tohit ?? 0, damage: mod.damage ?? "", damagetype: mod.damagetype ?? "")}))
+                if mod.tohit == nil {
+                    let damage = mod.damage ?? ""
+                    let range = NSRange(location: 0, length: (damage as NSString).length)
+                    let regex = try! NSRegularExpression(pattern: "([0-9]+)d([0-9]+)([+-][0-9]*)?")
+                    let match = regex.firstMatch(in: damage, options: [], range: range)
+                    var die = 1
+                    var modifier = 0
+                    var dice = 1
+                    if match?.numberOfRanges ?? 0 > 0 {
+                        if let matchrange = match?.range(at:1) {
+                            if let diceRange = Range(matchrange, in:damage) {
+                                dice = Int(damage[diceRange]) ?? 1
+                            }
+                        }
+                        if let matchrange = match?.range(at:2) {
+                            if let diceRange = Range(matchrange, in:damage) {
+                                die = Int(damage[diceRange]) ?? 6
+                            }
+                        }
+                        if let matchrange = match?.range(at:3) {
+                            if let diceRange = Range(matchrange, in:damage) {
+                                modifier = Int(damage[diceRange]) ?? 0
+                            }
+                        }
+                    }
+                    
+                    rollDialog.addAction(UIAlertAction(title: item + " Attack", style: UIAlertAction.Style.default, handler: {action in
+                        self.rollDamage(roll: item + " Attack", dice: dice, die: die, mod: modifier, damagetype: mod.damagetype ?? "")}))
+                } else {
+                    rollDialog.addAction(UIAlertAction(title: item + " Attack", style: UIAlertAction.Style.default, handler: {action in self.rollAttack(roll: item + " Attack", mod: mod.tohit ?? 0, damage: mod.damage ?? "", damagetype: mod.damagetype ?? "")}))
+                }
             } else {
                 if mod.stat != nil {
-                    switch mod.stat {
+                    let stat = mod.stat ?? ""
+                    switch stat.lowercased() {
                     case "str": item = "Strength"; break;
                     case "dex": item = "Dexterity"; break;
                     case "con": item = "Constitution"; break;
                     case "int": item = "Inteligence"; break;
                     case "wis": item = "Wisdom"; break;
                     case "cha": item = "Charisma"; break;
-                    case .none:
-                        break
-                    case .some(_):
+                    default:
                         break
                     }
                     rollDialog.addAction(UIAlertAction(title: item + " Save", style: UIAlertAction.Style.default, handler: {action in self.rollWithMod(roll: item + " Save", mod: mod.save ?? 0)}))
@@ -423,20 +534,235 @@ observer.observe(document, config);
             }
         }
         if checkIfCharacterSheetBuilderScores(wV: webView) {
-            rollDialog.addAction(UIAlertAction(title: "Roll 3d6", style: UIAlertAction.Style.default, handler: {action in self.rollSomeDice(roll: "3d6 Roll", die: 6, dice: 3)}))
-            rollDialog.addAction(UIAlertAction(title: "Roll 4d6 and Drop Lowest", style: UIAlertAction.Style.default, handler: {action in self.rollSomeDice(roll: "4d6 Roll", die: 6, dice: -3)}))
+            rollDialog.addAction(UIAlertAction(title: "Roll 3d6", style: UIAlertAction.Style.default, handler: {action in self.rollSomeDice(roll: "Roll for Abilities", die: 6, dice: 3)}))
+            rollDialog.addAction(UIAlertAction(title: "Roll 4d6 and Drop Lowest", style: UIAlertAction.Style.default, handler: {action in self.rollSomeDice(roll: "Roll for Abilities", die: 6, dice: 4)}))
         }
         if rollDialog.actions.count < 1 {
-            rollDialog.addAction(UIAlertAction(title: "Roll a D4", style: UIAlertAction.Style.default, handler: {action in self.rollSomeDice(roll: "D4 Roll", die: 4,dice: 1)}))
-            rollDialog.addAction(UIAlertAction(title: "Roll a D6", style: UIAlertAction.Style.default, handler: {action in self.rollSomeDice(roll: "D6 Roll", die: 6,dice: 1)}))
-            rollDialog.addAction(UIAlertAction(title: "Roll a D8", style: UIAlertAction.Style.default, handler: {action in self.rollSomeDice(roll: "D8 Roll", die: 8,dice: 1)}))
-            rollDialog.addAction(UIAlertAction(title: "Roll a D10", style: UIAlertAction.Style.default, handler: {action in self.rollSomeDice(roll: "D10 Roll", die: 10,dice: 1)}))
-            rollDialog.addAction(UIAlertAction(title: "Roll a D12", style: UIAlertAction.Style.default, handler: {action in self.rollSomeDice(roll: "D12 Roll", die: 12,dice: 1)}))
-            rollDialog.addAction(UIAlertAction(title: "Roll a D20", style: UIAlertAction.Style.default, handler: {action in self.rollSomeDice(roll: "D20 Roll", die: 20,dice: 1)}))
-            rollDialog.addAction(UIAlertAction(title: "Roll a D100", style: UIAlertAction.Style.default, handler: {action in self.rollSomeDice(roll: "D100 Roll", die: 100,dice: 1)}))
+            rollStandardDice()
+            return
         }
+        rollDialog.addAction(UIAlertAction(title: "Roll Standard Dice", style: UIAlertAction.Style.default, handler: {action in self.rollStandardDice()}))
         rollDialog.addAction(UIAlertAction(title: "Cancel", style: UIAlertAction.Style.default, handler: nil))
         rollDialog.view.addSubview(UIView())
+        rollDialog.popoverPresentationController?.sourceView = self.view
         self.present(rollDialog, animated: true, completion: nil)
+    }
+    
+    func rollStandardDice() {
+        let rollDialog = UIAlertController(title: "Virtual Dice Roll", message: "What would you like to roll for?",preferredStyle: .actionSheet)
+        rollDialog.addAction(UIAlertAction(title: "Roll some D4s", style: UIAlertAction.Style.default, handler: {action in self.askHowManyToRoll(roll: action.title!, die:4)}))
+        rollDialog.addAction(UIAlertAction(title: "Roll some D6s", style: UIAlertAction.Style.default, handler: {action in self.askHowManyToRoll(roll: action.title!, die:6)}))
+        rollDialog.addAction(UIAlertAction(title: "Roll some D8s", style: UIAlertAction.Style.default, handler: {action in self.askHowManyToRoll(roll: action.title!, die:8)}))
+        rollDialog.addAction(UIAlertAction(title: "Roll some D10s", style: UIAlertAction.Style.default, handler: {action in self.askHowManyToRoll(roll: action.title!, die:10)}))
+        rollDialog.addAction(UIAlertAction(title: "Roll some D12s", style: UIAlertAction.Style.default, handler: {action in self.askHowManyToRoll(roll: action.title!, die:12)}))
+        rollDialog.addAction(UIAlertAction(title: "Roll some D20s", style: UIAlertAction.Style.default, handler: {action in self.askHowManyToRoll(roll: action.title!, die:20)}))
+        rollDialog.addAction(UIAlertAction(title: "Roll some D100s", style: UIAlertAction.Style.default, handler: {action in self.askHowManyToRoll(roll: action.title!, die:100)}))
+        rollDialog.addAction(UIAlertAction(title: "Roll some Custom Dice", style: UIAlertAction.Style.default, handler: {action in self.customRoll(roll: action.title!)}))
+        rollDialog.addAction(UIAlertAction(title: "Cancel", style: UIAlertAction.Style.default, handler: nil))
+        rollDialog.view.addSubview(UIView())
+        rollDialog.popoverPresentationController?.sourceView = self.view
+        self.present(rollDialog, animated: true, completion: nil)
+    }
+    
+    func saveCurrentURL(theURL: String? = "") {
+        if let myURL = URL(string:theURL ?? "https://www.dndbeyond.com/my-characters") {
+            if myURL.host == "www.dndbeyond.com" || myURL.host == "dndbeyond.com" {
+                let defaults = UserDefaults.standard
+                defaults.set(myURL, forKey: "activeURL")
+            }
+        }
+    }
+    
+    func loadStaticPage() {
+        loadStaticPage("")
+    }
+    
+    func loadStaticPage(_ message: String) {
+        let defaults = UserDefaults.standard
+        let myURL = defaults.url(forKey: "activeURL") ?? URL(string:"https://www.dndbeyond.com/my-characters")
+        let href = myURL!.absoluteString
+        let html = """
+        <html><head><title>D&amp;D Beyond: Offline</title><style>body {font-family: "Roboto Condensed",Roboto,Helvetica,sans-serif;font-size: 18px;} a { text-transform: uppercase;font-weight: bold;color: white; }</style><meta name="viewport" content="width=device-width,initial-scale = 1.0, maximum-scale=1.0,user-scalable=no"></head><body><div style="outline: 0; box-sizing: inherit; position: fixed;height: 100%;width: 100%;top: 0;right: 0;color: #fff;background-color: rgba(35,35,35,.96);display: flex;opacity: 1;visibility: visible;z-index: 60003;"><div style="display: flex;align-items: center;flex-direction: column;justify-content: center;width: 100%;"><div style="background: transparent 50% url('data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDIwLjAuMCwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAzOTkuNSAxMjYuNyIgc3R5bGU9ImVuYWJsZS1iYWNrZ3JvdW5kOm5ldyAwIDAgMzk5LjUgMTI2Ljc7IiB4bWw6c3BhY2U9InByZXNlcnZlIj4KPHN0eWxlIHR5cGU9InRleHQvY3NzIj4KCS5zdDB7ZmlsbDojRTQwNzEyO30KCS5zdDF7ZmlsbDojRkZGRkZGO30KPC9zdHlsZT4KPGc+Cgk8cGF0aCBjbGFzcz0ic3QwIiBkPSJNMTc4LjUsMzhjMC0wLjYsMC4xLTEuNiwwLjMtMy4zYzAuMi0xLjcsMS4zLTYuNyw1LjctOS41Yy0wLjIsMC0wLjUtMC4xLTAuNy0wLjFjLTAuNiwwLTIuNC0wLjEtNC45LDAuOAoJCWMxLTEuNSw0LjctNCw2LjEtNC43YzAuMS0wLjEsMC4zLTAuMiwwLjQtMC4yYy0xLjYtNS4xLTUtOS4zLTkuOC0xMS44Yy0zLTEuNi02LjEtMi40LTEwLjMtMi41djBoLTguNGMtNi43LDAtOS44LTAuMS0xMi4yLTAuNgoJCWMtMi0wLjUtMy44LTEuNi0zLjgtMS42bC0wLjUtMC4zbDAuMSwwLjZjMCwwLjIsMC41LDQuNyw1LjksOC43YzEsMC44LDEuOCwxLjUsMS44LDQuMXYyNC4yYzAsMi42LTAuNSwzLjMtMS43LDQKCQljLTEuMywwLjgtNCwyLjMtNCwyLjRsLTAuOSwwLjVoMjEuOWM2LjEsMCwxMC0xLDE0LjEtMy44YzAuOC0wLjUsMS41LTEuMSwyLjEtMS42Yy0wLjQtMy4xLDAuMS01LjksMC41LTcuNQoJCUMxODAuMiwzNS43LDE3OS4xLDM2LjcsMTc4LjUsMzh6IE0xNjQuNSwzOC41aC00LjdWMTYuOWg0LjdjNi4yLDAsOS43LDMuOSw5LjcsMTAuOEMxNzQuMiwzNC42LDE3MC43LDM4LjUsMTY0LjUsMzguNXoKCQkgTTIyNS4yLDQzLjljMC40LTAuOCwwLjYtMS44LDAuNi0yLjhjMC0xLTAuMy0yLTAuNy0yLjhsMS4yLDAuMmMwLjgsMC4xLDIuMywxLjEsMi4zLDIuNkMyMjguNiw0Mi45LDIyNi44LDQzLjcsMjI1LjIsNDMuOXoKCQkgTTI0OC40LDQ0LjljLTQuMiwyLjgtOCwzLjgtMTQuMSwzLjhoLTAuMmMxLTEuMiwxLjUtMi44LDEuNS00LjRjMC0yLjMtMS4xLTQuNC0yLjktNS44aDIuNmM2LjIsMCw5LjctMy45LDkuNy0xMC44CgkJYzAtNi45LTMuNS0xMC44LTkuNy0xMC44aC00Ljd2Mi43Yy0wLjctMC4xLTEuMy0wLjItMi0wLjJjLTEuMSwwLTIuNCwwLjItMi43LDAuNGMxLjMtMS4xLDIuOC0xLjYsMy44LTEuOGMtNC40LTEtOC41LDEuNS05LjEsMi4yCgkJYzAuNS0xLjEsMS41LTIuMSwyLjItMi44Yy0xLjQsMC41LTIuNywxLjItMy44LDEuOXYtMS44YzAtMi43LTAuNy0zLjQtMS44LTQuMWMtNS40LTMuOS01LjktOC41LTUuOS04LjdsLTAuMS0wLjZsMC41LDAuMwoJCWMwLDAsMS44LDEuMiwzLjgsMS42YzIuMywwLjUsNS41LDAuNiwxMi4yLDAuNmg4LjR2MGM0LjIsMC4yLDcuMywwLjksMTAuMywyLjVjNi44LDMuNSwxMC44LDEwLjQsMTAuOCwxOC40CgkJYzAsNC45LTEuNiw5LjctNC40LDEzLjFDMjUxLjcsNDIuMywyNTAuMiw0My43LDI0OC40LDQ0Ljl6IE0yMjcuMiwzNi42Yy0xLjUsMC0zLjEsMC4zLTMuMSwwLjNjLTAuMy0wLjMtMi4zLTEuOC0zLjItMgoJCWMxLjYsMS43LDEuMSwzLjUsMC43LDQuMWMtMC4zLDAuNS0wLjksMC44LTEuNCwwLjhjLTAuNCwwLTAuOC0wLjEtMS4yLTAuNHYtOS44YzAuNC0wLjUsMC44LTEuMSwxLjMtMS42YzEuMS0xLjMsMi45LTIuMSw0LjctMi4xCgkJYzEuMSwwLDIuMiwwLjMsMi45LDAuOWwwLjYsMC40bDAuNS0wLjVjMC4zLTAuMywxLTAuNiwxLjctMC45djExLjVDMjI5LjYsMzYuOCwyMjguNSwzNi42LDIyNy4yLDM2LjZ6IE0yMjUuMiwyMwoJCWMtMy43LTAuNS05LjQsMi0xMi4zLDUuNmMwLjYtMi40LDMuMi02LjMsNi40LTguMWMwLDAtMS42LDItMC45LDIuM2MxLDAuNSwzLjYtMy42LDctMy43YzAsMC0yLjUsMS4yLTIsMi4xYzAuNCwwLjYsMi4xLTAuOCw1LTAuOAoJCWMzLjYsMCw2LjgsMi4yLDguMywzLjljLTIuNS0wLjctNy4yLDAuNS04LjYsMS43Yy0yLjEtMS42LTYuMi0xLjQtOC41LDEuM2MtMi45LDMuMy00LjcsNy4yLTUuMiw4LjRjLTEtMC44LTEuOS0xLjUtMi41LTIKCQljLTAuNS0wLjQtMS0wLjYtMS41LTAuOEMyMTMuMSwyOS4xLDIxOC43LDIzLjMsMjI1LjIsMjN6IE0xODYuMiwxMS44Yy0wLjQtNC43LDEuOC03LjMsMi44LTguNGMyLjItMi4zLDUuMi0zLjYsOS43LTMuNAoJCWM3LDAuNCwxMC40LDUuMiwxMC40LDEwLjNjMCwyLjctMS40LDYuMy0zLjQsOC42Yy0wLjEtMC4xLTAuMy0wLjMtMC40LTAuNGMtMS4zLTEuMi0zLjItMi43LTQuNC00LjVjMi40LTMuNSwxLjQtOS0yLjktOQoJCWMtMi43LDAtNC45LDIuOC00LDYuMmMtMC40LDEuNS0wLjYsMy41LTAuMyw1Yy0zLjEtMS42LTQuMS0zLjctNC43LTUuNmMtMC44LDEuNi0xLjMsMy44LTAuNyw1LjkKCQlDMTg4LjMsMTYuNywxODYuNSwxNS4xLDE4Ni4yLDExLjh6IE0xODgsMjAuM2MtMC4zLDEuMS00LjQsMi4zLTYuNCw0LjNjMy0wLjYsNC40LTAuMSw0LjksMS4xYzAuMywwLjktMC4xLDIuMS0wLjMsMy41CgkJYzEtMS4xLDQuNC0zLjQsNi45LTMuOWMtMC42LTAuMi0yLjEtMC41LTIuNy0wLjVjMS44LTIuMSw1LjgtMi44LDgtMi4zYy0xLjQtMC4xLTQuMiwwLjctNS4zLDEuNmMxLDAuMiwxLjksMC40LDIuNywwLjcKCQljLTEuMywwLjUtMywyLjEtMy42LDMuOGMxLjctMS4yLDUuMi0wLjksNS44LDEuNmMwLjQsMS43LTAuOCwzLjItMS40LDMuNWMwLjUsMC4xLDEuNywwLDIuMi0wLjNjLTAuMiwwLjctMS4yLDEuOS0xLjksMi4xCgkJYzEuOCwwLDQuNC0xLjIsNS4xLTIuOWMwLDAtMS4xLDAuNC0xLjYtMC4xYy0wLjUtMC41LDAuMi0yLjcsMC4yLTIuN3MtMC43LDAuOS0xLjMsMC40Yy0wLjYtMC42LDAuMi0yLjYsMC41LTMKCQljLTAuNi0wLjItMi4yLTAuNC0yLjktMC4zYzItMC43LDYuNS0xLjEsNy0wLjJjMC40LDAuNy0wLjYsMi4xLTAuNiwyLjFjMC44LTAuMSwzLjEsMCwzLjksMC45YzAuOCwxLDAuMywyLjMsMC4zLDIuMwoJCWMxLjgtMC45LDMuNC0zLjcsMy02LjVjLTAuMiwwLjYtMSwxLjUtMS44LDEuN2MwLjEtMC45LTAuNi0xLjQtMS4yLTEuNmMwLjMtMS43LTAuNC0zLjktMi45LTYuM2MtMi4xLTIuMS02LjEtNC45LTUuOS04LjYKCQljLTAuNiwwLjgtMS4xLDMuMS0wLjUsNC40YzEuNywyLDUuNCw0LjIsNi4zLDcuNmMtMS42LTQtOS40LTcuMS05LjEtMTIuNmMtMSwxLTEuNiw0LjktMC44LDYuOWMxLjUsMC45LDIuOCwyLjQsMywzLjgKCQljLTEuNC0zLjItNy4xLTMuOC04LjctNy42Yy0wLjQsMS40LTAuMiwzLjEsMC42LDQuMmMwLDAtMS40LTAuNS00LjQtMC40QzE4Ni4xLDE3LjQsMTg4LjIsMTkuMiwxODgsMjAuM3ogTTIwNC4yLDI0LjkKCQljLTEuNywwLTIuMi0xLjMtMi42LTIuN0MyMDMuNiwyMywyMDQuMiwyNC45LDIwNC4yLDI0Ljl6IE0yMjYsNTFjMS4yLDEuMSw0LjEsMS45LDUuNiwxLjJjLTAuOSwxLjYtNS4xLDMuOC05LDIuOAoJCWMtMy43LTEtNS40LTQuNS01LjQtNi44Yy0xLjgsMS44LTEuMyw0LjYsMCw1LjhjLTEuNC0wLjQtMy42LTEuOS00LTQuNmMtMC4zLTIuMywxLTUtMS40LTcuMWMtMS40LTEuMy0zLjctMy4xLTUuMS00LjIKCQljLTMtMi4zLTEuOS00LjEtMi41LTUuM2MtMC41LTEtMS44LTEuNS0yLjUtMi40Yy0wLjgtMC45LTAuNy0yLjItMC4zLTIuOWMtMC4xLDEsMC42LDEuOCwxLjYsMi4yYzEuMSwwLjQsMiwwLjEsMywwLjYKCQljMS4xLDAuNywwLjYsMi40LDEuNCwzLjFjMC43LDAuNSwyLjYtMC4yLDQuMSwxLjFjMS42LDEuMyw1LjEsNC4yLDYuNiw1LjRjMi43LDIuMiw1LjUtMC4zLDQuNi0yLjljMi44LDEuNiwzLjEsNi4yLDAuOCw3LjgKCQljMi4yLDAuNSw2LjEtMC41LDYuMS0zLjZjMC0xLjktMS44LTMuMy0zLTMuNWM0LjUtMC40LDguNCwyLjcsOC40LDYuN0MyMzQuOCw0OC40LDIzMC43LDUxLjYsMjI2LDUxeiBNMjExLjEsNDIuOAoJCWMwLjEsMC4xLDAuMiwwLjIsMC4zLDAuM2MtMi40LDQuOS02LjksMTEuMi0xNS41LDExLjJjLTMuMSwwLTUuOS0xLjEtNy45LTIuNmMtMC43LTAuNS0xLjMtMS4xLTEuOC0xLjhoMGMwLDAsMCwwLDAsMAoJCWMtMC4zLTAuNC0wLjYtMC43LTAuOS0xLjFjLTAuNC0wLjUtMC43LTAuNS0wLjktMC4yYy0wLjQsMC42LDAuMywyLjUsMC4zLDIuNWMtNi44LTYuNC0zLjMtMTUuOC0zLjItMTYuMmMwLjQtMS4yLDAtMS40LTAuNC0xLjIKCQljLTAuNiwwLjItMS4zLDEuMi0xLjMsMS4yYzAuNS01LjcsNS44LTkuMiw1LjgtOS4yYzAsMCwwLjEsMC4xLDAuMSwwLjFjMC42LDAuOS0wLjMsMi0wLjQsNS42YzEtMS40LDQuOS00LjEsNy4xLTQuOQoJCWMtMC43LDAuOS0xLjMsMi4yLTEuMyw0LjFjMCwwLDEuNi0xLjgsMy42LTEuOGMwLjUsMCwxLDAuMSwxLjQsMC4zYy03LjYsNy40LTQuNCwxNi42LDIsMTYuNmMzLjYsMCw3LjItNCw4LjctNi43CgkJQzIwNy45LDQwLjEsMjA5LjgsNDEuNywyMTEuMSw0Mi44eiIvPgoJPHBhdGggY2xhc3M9InN0MSIgZD0iTTIyMS4zLDY0LjdjLTE3LjcsMC0zNS41LDEyLjEtMzUuNSwzMS40YzAsMjAsMTcuNywzMC42LDM1LjMsMzAuNmMxNy44LDAsMzUuNi0xMC41LDM1LjYtMzAuNgoJCUMyNTYuNyw3Ni4zLDIzOSw2NC43LDIyMS4zLDY0Ljd6IE0yMjEuMSwxMTMuMWMtNy44LDAtMTcuNC01LjktMTcuNC0xN2MwLTExLjQsOS0xNy41LDE3LjUtMTcuNWM3LjgsMCwxNy43LDUuNCwxNy43LDE3LjcKCQlDMjM4LjksMTA4LDIyOSwxMTMuMSwyMjEuMSwxMTMuMXoiLz4KCTxwYXRoIGNsYXNzPSJzdDEiIGQ9Ik0zMDIuNyw2Ni42aDI0LjVsLTQuNiw1LjJ2NTMuMmgtMTMuM2MtMi41LTcuOS0yOC0yOC4xLTMwLjMtMzQuN2gtMC4ydjI5LjZsNC42LDUuMWgtMjQuM2w0LjUtNS4yVjcxLjgKCQlsLTQuNi01LjNoMTkuN2MxLjgsNS45LDI0LjgsMjIuOCwyOC4yLDMxLjhoMC4yVjcxLjhMMzAyLjcsNjYuNnoiLz4KCTxwYXRoIGNsYXNzPSJzdDEiIGQ9Ik0zNjEuOCw2NS4zYy0xMi45LDAtMjUsMC44LTMxLjQsMS4zbDQuNiw1LjF2NDguMmwtNC42LDUuMWM2LjUsMC41LDE5LjMsMS4zLDMyLjIsMS4zCgkJYzI2LjMsMCwzNi45LTEyLjksMzYuOS0zMC41QzM5OS41LDc3LjUsMzg1LDY1LjMsMzYxLjgsNjUuM3ogTTM2Mi40LDExM2MtNCwwLTcuNi0wLjItMTAtMC41Vjc5LjJjMi43LTAuMyw0LjgtMC42LDkuMi0wLjYKCQljMTEuMywwLDIwLDQuOCwyMCwxN0MzODEuNiwxMDcuMywzNzMuNywxMTMsMzYyLjQsMTEzeiIvPgoJPHBvbHlnb24gY2xhc3M9InN0MSIgcG9pbnRzPSIxNjQuMiwxMTkuOCAxNjguNywxMjQuOSAxNDIuMSwxMjQuOSAxNDYuOSwxMTkuOCAxNDYuOCwxMDcuNyAxMTkuMyw2Ni42IDE0Ny4zLDY2LjYgMTQzLjMsNzEuMSAKCQkxNTYuNCw5NC4zIDE1Ni42LDk0LjMgMTY5LjQsNzEuMSAxNjUuNiw2Ni42IDE5MS42LDY2LjYgMTY0LjEsMTA3LjkgCSIvPgoJPHBvbHlnb24gY2xhc3M9InN0MSIgcG9pbnRzPSIxMjQuOCwxMTEuNyAxMTYsMTI0LjkgMTE2LjEsMTI0LjkgNjUuMywxMjQuOSA2OS45LDExOS44IDY5LjksNzEuNyA2NS4zLDY2LjYgMTExLjIsNjYuNSAxMTEuMiw2Ni42IAoJCTEyMCw3OS43IDg3LjMsNzkuNyA4Ny4zLDg5IDExMC41LDg5IDEwMS43LDEwMi4yIDEwMS43LDEwMi4zIDg3LjMsMTAyLjIgODcuMywxMTEuOCAJIi8+Cgk8cGF0aCBjbGFzcz0ic3QxIiBkPSJNNTguOCw5OS4zYy0yLjItMi4xLTUuMS0zLjctOC45LTQuOGMxLjUtMC40LDIuOS0xLDQuMi0xLjhjMS4zLTAuOCwyLjMtMS42LDMuMi0yLjZjMC45LTEsMS42LTIsMi0zLjEKCQlDNTkuOCw4Niw2MCw4NSw2MCw4NHYtMS45YzAtMi4zLTAuNS00LjUtMS42LTYuNGMtMS4xLTEuOS0yLjYtMy42LTQuNi00LjljLTItMS40LTQuOC0yLjQtNy42LTMuMmMtMi44LTAuNy01LjktMS4xLTkuMy0xLjFoLTI3CgkJSDcuMUgxLjlsNS4yLDUuNHYxOC40SDBsNy4xLDkuMXYyMC4xbC01LjIsNS40aDUuMmgyLjhoMjguOGM2LjksMCwxMi45LTEuMiwxNy4xLTMuN2M0LjItMi41LDYuMi02LjEsNi4yLTExdi0zLjMKCQlDNjIsMTAzLjksNjAuOSwxMDEuNCw1OC44LDk5LjN6IE0yNC4xLDc3LjNoOS40YzIuNywwLDQuOSwwLjQsNi42LDEuMmMxLjcsMC44LDIuNSwyLjMsMi41LDQuNXYxLjljMCwxLjctMC42LDMtMS45LDQKCQljLTEuMywxLTMsMS41LTUuMiwxLjVIMjQuMVY3Ny4zeiBNNDQuNiwxMDguNWMwLDEuMi0wLjIsMi4yLTAuNywyLjljLTAuNSwwLjctMS4xLDEuMy0xLjksMS44Yy0wLjgsMC40LTEuNywwLjctMi44LDAuOQoJCWMtMS4xLDAuMS0yLjIsMC4yLTMuMywwLjJIMjQuMXYtMTQuMWgxMS45YzIuMiwwLDQuMSwwLjUsNS45LDEuNWMxLjcsMSwyLjYsMi4zLDIuNiw0VjEwOC41eiIvPgo8L2c+Cjwvc3ZnPgo=') no-repeat;background-size: auto 70px;height: 90px;width: 100%;margin-bottom: 10px;"></div><div class="sync-blocker-anim"></div><p>\(message)</p><p><a href="\(href)">Try Again</a></p></div></div></body></html>
+        
+        """
+        webView.loadHTMLString(html, baseURL:nil)
+
+    }
+    
+    func makeWebArchive(_ urls: Array<String>, _ activeUrl: URL) {
+        DispatchQueue.global(qos: .background).async {
+            let archiveURL = try! FileManager.default.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: true).appendingPathComponent((activeUrl.pathComponents.last)!).appendingPathExtension("webarchive")
+
+            print("Archiving " + (activeUrl.pathComponents.last)! )
+            var urls = urls
+            var homebrew  = false
+            var themeColorId = 0
+            var classIds = Array<NSNumber>.init()
+            var sources = ""
+            
+            do {
+                let jsprep = try Data(contentsOf:Bundle.main.url(forResource: "prep", withExtension: "js")!)
+                let jsonURL = activeUrl.appendingPathComponent("/json")
+                let contents = try Data(contentsOf:jsonURL)
+                let jsoncharsvc = try Data(contentsOf:URL(string:"https://www.dndbeyond.com/api/character/services")!)
+                let jsonconfig = try Data(contentsOf:URL(string:"https://www.dndbeyond.com/api/config/json?v=2.4.2")!)
+                if let charJSON = try JSONSerialization.jsonObject(with: contents, options:[] ) as? [String: Any] {
+                    if let charObj = charJSON["character"] as? [String: Any] {
+                        if charObj["themeColorId"] is Int {
+                            themeColorId = charObj["themeColorId"] as! Int
+                        }
+                        let prefs = charObj["preferences"] as! [String: Any]
+                        homebrew = prefs["useHomebrewContent"] as! Bool
+                        let actSrc = charObj["activeSourceCategories"] as! [Int]
+                        sources = actSrc.map(String.init).joined(separator: ",")
+                        let classes = charObj["classes"] as! [Any]
+                        for oneClass in classes {
+                            let classId = (oneClass as! [String: Any])["id"] as! NSNumber
+                            let classDef = (oneClass as! [String: Any])["definition"] as! [String: Any]
+                            if classDef["canCastSpells"] as! Bool {
+                                classIds.append(classId)
+                            }
+                        }
+                    }
+                }
+                let apiQueryString = urls[0] + "&useHomebrew=" + String(homebrew) + "&activeSourceCategories=" + sources
+                urls.remove(at: 0)
+                var maincontents = try Data(contentsOf:activeUrl)
+                var fullcontents = String("<script type=\"text/javascript\">\n").data(using: .utf8)!
+                fullcontents.append(String("\njsonfile = ").data(using: .utf8)!)
+                fullcontents.append(contents)
+                fullcontents.append(String(";\njsonconfig = ").data(using: .utf8)!)
+                fullcontents.append(jsonconfig)
+                fullcontents.append(String(";\njsoncharsvc = ").data(using: .utf8)!)
+                fullcontents.append(jsoncharsvc)
+                fullcontents.append(String(";\njsonequip = ").data(using: .utf8)!)
+                let jsonequip = try Data(contentsOf:(URL(string: "https://www.dndbeyond.com/api/equipment/list/json?" + apiQueryString)!))
+                fullcontents.append(jsonequip)
+                if classIds.count > 0 {
+                    fullcontents.append(String(";\njsonspells = []").data(using: .utf8)!)
+                    for classId in classIds {
+                        fullcontents.append(String(";\njsonspells[\"" + classId.stringValue + "\"] = ").data(using: .utf8)!)
+                        let jsonspell = try Data(contentsOf:(URL(string: "https://www.dndbeyond.com/api/spells/list/json?" + apiQueryString + "&characterClassId=" + classId.stringValue)!))
+                        fullcontents.append(jsonspell)
+                    }
+                }
+                fullcontents.append(String(";\n\n").data(using: .utf8)!)
+                fullcontents.append(jsprep)
+                fullcontents.append(String("\n</script>\n").data(using: .utf8)!)
+                let crossoriginrange = maincontents.range(of: String(" crossorigin ").data(using: .utf8)!)
+                maincontents.replaceSubrange(crossoriginrange!, with: String(" ").data(using:.utf8)!)
+                fullcontents.append(maincontents)
+                let mainres = WebArchiveResource(url: activeUrl,data: fullcontents,mimeType: "text/html")
+                var webarchive = WebArchive(resource: mainres)
+                for url in urls {
+                    let range = NSRange(location: 0, length: (url as NSString).length)
+                    let regex = try! NSRegularExpression(pattern: "^http[s]?:\\/\\/((www\\.|media\\.)?dndbeyond.com|fonts.googleapis.com|media-waterdeep.cursecdn.com|fonts.gstatic.com)\\/")
+                    let matches = regex.numberOfMatches(in: url, options: [], range: range)
+                    if matches > 0 {
+                        if url.contains("themeId=") && !url.contains("themeId=" + String(themeColorId)) {
+                            continue
+                        }
+                        var mimetype: String
+                        if url.hasSuffix(".svg") || url.contains("/svg/") {
+                            mimetype = "image/svg+xml"
+                        } else if url.hasSuffix(".jpg") || url.hasSuffix(".jpeg") {
+                            mimetype = "image/jpeg"
+                        } else if url.hasSuffix(".png") {
+                            mimetype = "image/png"
+                        } else if url.hasSuffix(".js") || url.contains("jquery") || url.contains("cobalt") || url.contains("waterdeep") {
+                            mimetype = "text/javascript"
+                        } else if url.hasSuffix(".css") || url.contains("css") {
+                            mimetype = "text/css"
+                        } else if url.hasSuffix(".json") || url.contains("json") {
+                            mimetype = "application/json"
+                        } else if url.hasSuffix(".html") || url.hasSuffix(".htm") {
+                            mimetype = "text/html"
+                        } else {
+                            mimetype = "application/octet-stream"
+                        }
+                        if let thisURL = URL(string: String(url).addingPercentEncoding(withAllowedCharacters:.urlQueryAllowed)!) {
+                            do {
+                                let cacheDir = try! FileManager.default.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: true).appendingPathComponent("cache", isDirectory: true)
+                                let cachedURL = cacheDir.appendingPathComponent(String(url).addingPercentEncoding(withAllowedCharacters: .alphanumerics)!)
+                                var isDir : ObjCBool = false
+                                if !FileManager.default.fileExists(atPath: cacheDir.path) {
+                                    try FileManager.default.createDirectory(at: cacheDir, withIntermediateDirectories: false, attributes:nil)
+                                }
+                                if FileManager.default.fileExists(atPath: cachedURL.path) {
+                                    let resContents = try Data(contentsOf:cachedURL)
+                                    let resource = WebArchiveResource(url:thisURL,data: resContents,mimeType: mimetype)
+                                    webarchive.addSubresource(resource)
+                                } else {
+                                    print("Caching: " + url)
+                                    let resContents = try Data(contentsOf:thisURL)
+                                    if FileManager.default.fileExists(atPath: cacheDir.path, isDirectory:&isDir) && isDir.boolValue {
+                                        try resContents.write(to: cachedURL)
+                                    }
+                                    let resource = WebArchiveResource(url:thisURL,data: resContents,mimeType: mimetype)
+                                    webarchive.addSubresource(resource)
+                                }
+                            } catch let error {
+                                print ("Could not cache " + url + ":" + error.localizedDescription)
+                            }
+                        } else {
+                            print("Invalid URL:" + url)
+                        }
+                    }
+                }
+                let encoder: PropertyListEncoder = {
+                    let plistEncoder = PropertyListEncoder()
+                    plistEncoder.outputFormat = .binary
+                    return plistEncoder
+                }()
+                let webArch = try encoder.encode(webarchive)
+                try webArch.write(to: archiveURL)
+                print ("Archived to: " + archiveURL.absoluteString)
+            } catch let error { print(error) }
+        }
+    }
+}
+extension ViewController: WKNavigationDelegate {
+    func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+        print(error)
+    }
+    func webView(_ webView: WKWebView, didFailProvisionalNavigation: WKNavigation!, withError: Error) {
+        if (withError as NSError).code == NSURLErrorNotConnectedToInternet {
+            let defaults = UserDefaults.standard
+            let myURL = defaults.url(forKey: "activeURL") ?? URL(string:"https://www.dndbeyond.com/my-characters")
+            let archiveURL = try! FileManager.default.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: true).appendingPathComponent((myURL?.pathComponents.last)!).appendingPathExtension("webarchive")
+            if FileManager.default.fileExists(atPath: archiveURL.path) {
+                webView.loadFileURL(archiveURL, allowingReadAccessTo: archiveURL)
+            } else {
+                loadStaticPage(withError.localizedDescription)
+            }
+        }
+    }
+}
+extension ViewController: WKScriptMessageHandler {
+    func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+        //this one works
+        if message.name == "captureCall" {
+            /*let storage = WKWebsiteDataStore.default()
+            storage.httpCookieStore.getAllCookies({ cookies in
+                for cookie in cookies {
+                    print(cookie)
+                }
+            })*/
+            if let body = message.body as? String {
+                print(body)
+            }
+        }
+    }
+}
+
+extension ViewController: UITextFieldDelegate {
+    func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
+        guard let textFieldText = textField.text,
+            let rangeOfTextToReplace = Range(range, in: textFieldText) else {
+                return false
+        }
+        let substringToReplace = textFieldText[rangeOfTextToReplace]
+        let count = textFieldText.count - substringToReplace.count + string.count
+        return count <= 3
     }
 }

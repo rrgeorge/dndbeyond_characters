@@ -7,6 +7,11 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		DA29EC96231887A4005698A9 /* VMInsults.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA29EC95231887A4005698A9 /* VMInsults.swift */; };
+		DA73D5BC2310E21600B24C31 /* prep.js in Resources */ = {isa = PBXBuildFile; fileRef = DA73D5BB2310E21600B24C31 /* prep.js */; };
+		DA73D5BE2310E31200B24C31 /* imgpreload.js in Resources */ = {isa = PBXBuildFile; fileRef = DA73D5BD2310E31200B24C31 /* imgpreload.js */; };
+		DA73D5C02310E39400B24C31 /* diceparser.js in Resources */ = {isa = PBXBuildFile; fileRef = DA73D5BF2310E39400B24C31 /* diceparser.js */; };
+		DAA8FC992317047D002254F3 /* WebArchive.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAA8FC982317047D002254F3 /* WebArchive.swift */; };
 		DAABE72322D6C6380018691D /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAABE72222D6C6380018691D /* AppDelegate.swift */; };
 		DAABE72522D6C6380018691D /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAABE72422D6C6380018691D /* ViewController.swift */; };
 		DAABE72822D6C6380018691D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = DAABE72622D6C6380018691D /* Main.storyboard */; };
@@ -34,6 +39,11 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		DA29EC95231887A4005698A9 /* VMInsults.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VMInsults.swift; sourceTree = "<group>"; };
+		DA73D5BB2310E21600B24C31 /* prep.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = prep.js; sourceTree = "<group>"; };
+		DA73D5BD2310E31200B24C31 /* imgpreload.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = imgpreload.js; sourceTree = "<group>"; };
+		DA73D5BF2310E39400B24C31 /* diceparser.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = diceparser.js; sourceTree = "<group>"; };
+		DAA8FC982317047D002254F3 /* WebArchive.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = WebArchive.swift; sourceTree = "<group>"; };
 		DAABE71F22D6C6380018691D /* D&D Beyond Characters.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "D&D Beyond Characters.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		DAABE72222D6C6380018691D /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		DAABE72422D6C6380018691D /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
@@ -99,6 +109,11 @@
 			children = (
 				DAABE72222D6C6380018691D /* AppDelegate.swift */,
 				DAABE72422D6C6380018691D /* ViewController.swift */,
+				DA29EC95231887A4005698A9 /* VMInsults.swift */,
+				DA73D5BF2310E39400B24C31 /* diceparser.js */,
+				DA73D5BD2310E31200B24C31 /* imgpreload.js */,
+				DAA8FC982317047D002254F3 /* WebArchive.swift */,
+				DA73D5BB2310E21600B24C31 /* prep.js */,
 				DAABE72622D6C6380018691D /* Main.storyboard */,
 				DAABE72922D6C63D0018691D /* Assets.xcassets */,
 				DAABE72B22D6C63D0018691D /* LaunchScreen.storyboard */,
@@ -229,7 +244,10 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				DA73D5C02310E39400B24C31 /* diceparser.js in Resources */,
 				DAABE72D22D6C63D0018691D /* LaunchScreen.storyboard in Resources */,
+				DA73D5BC2310E21600B24C31 /* prep.js in Resources */,
+				DA73D5BE2310E31200B24C31 /* imgpreload.js in Resources */,
 				DAABE72A22D6C63D0018691D /* Assets.xcassets in Resources */,
 				DAABE72822D6C6380018691D /* Main.storyboard in Resources */,
 			);
@@ -258,6 +276,8 @@
 			files = (
 				DAABE72522D6C6380018691D /* ViewController.swift in Sources */,
 				DAABE72322D6C6380018691D /* AppDelegate.swift in Sources */,
+				DAA8FC992317047D002254F3 /* WebArchive.swift in Sources */,
+				DA29EC96231887A4005698A9 /* VMInsults.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -432,6 +452,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 97869B6X2R;
 				INFOPLIST_FILE = "D&D Beyond Characters/Info.plist";
@@ -441,8 +462,9 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "net.midnightweb.D-D-Beyond-Characters";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
 		};
@@ -450,6 +472,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 97869B6X2R;
 				INFOPLIST_FILE = "D&D Beyond Characters/Info.plist";
@@ -459,8 +482,9 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "net.midnightweb.D-D-Beyond-Characters";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
 		};
