@@ -80,13 +80,44 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
     }
 
     override func motionEnded(_ motion: UIEvent.EventSubtype, with event: UIEvent?) {
-        if motion == .motionShake && checkIfCharacterSheet(wV: webView){
+        if motion == .motionShake {
             parseToRollDice()
         }
     }
     
     func parseToRollDice () {
         do {
+            if (checkIfCharacterSheetBuilderClasses(wV: webView)) {
+                let js = """
+                var hitdice = [];
+                var hdElements = document.getElementsByClassName('hp-manager-hitdice-die');
+                if (hdElements.length > 0) {
+                    for (var i=0;i<hdElements.length;i++) {
+                        var hitdie = hdElements[i].getElementsByClassName('hp-manager-data')[0];
+                        if (hitdie) {
+                            hitdice.push(hitdie.innerText);
+                        }
+                    }
+                }
+                hitdice;
+                """
+                webView.evaluateJavaScript(js) { result,error in
+                    let hitdice = result as! [String]
+                    if hitdice.count > 0 {
+                        let rollDialog = UIAlertController(title: "Virtual Dice Roll", message: "Roll for HP",preferredStyle: .actionSheet)
+                        rollDialog.addAction(UIAlertAction(title: "Roll all dice for HP", style: UIAlertAction.Style.default, handler: {action in self.rollHP(hitdice: hitdice,true)}))
+                        rollDialog.addAction(UIAlertAction(title: "Increase HP by one hit die", style: UIAlertAction.Style.default, handler: {action in self.rollHP(hitdice: hitdice)}))
+                        rollDialog.addAction(UIAlertAction(title: "Roll Standard Dice", style: UIAlertAction.Style.default, handler: {action in self.rollStandardDice()}))
+                        rollDialog.addAction(UIAlertAction(title: "Cancel", style: UIAlertAction.Style.default, handler: nil))
+                        rollDialog.view.addSubview(UIView())
+                        rollDialog.popoverPresentationController?.sourceView = self.view
+                        self.present(rollDialog, animated: true, completion: nil)
+                    } else {
+                        self.rollDice()
+                    }
+                }
+                return
+            }
             let js = try String(contentsOfFile: Bundle.main.path(forResource: "diceparser", ofType: "js")!) + "\nJSON.stringify(mods);\n"
             webView.evaluateJavaScript(js) { mods,error in
                 do {
@@ -144,7 +175,7 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
                 return true
             }
             let range = NSRange(location: 0, length: (url.absoluteString as NSString).length)
-            let regex = try! NSRegularExpression(pattern: "http[s]?:\\/\\/(www\\.)?dndbeyond.com\\/profile\\/([^\\/]*)\\/characters\\/[^\\/]*")
+            let regex = try! NSRegularExpression(pattern: "http[s]?:\\/\\/(www\\.)?dndbeyond.com\\/profile\\/([^\\/]*)\\/characters\\/[0-9]*$")
             let matches = regex.numberOfMatches(in: url.absoluteString, options: [], range: range)
             if matches > 0 {
                 return true
@@ -159,7 +190,22 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
     func checkIfCharacterSheetBuilderScores(wV: WKWebView) -> Bool {
         if let url = wV.url {
             let range = NSRange(location: 0, length: (url.absoluteString as NSString).length)
-            let regex = try! NSRegularExpression(pattern: "http[s]?:\\/\\/(www\\.)?dndbeyond.com\\/profile\\/([^\\/]*)\\/characters\\/.*ability-scores\\/.*")
+            let regex = try! NSRegularExpression(pattern: "http[s]?:\\/\\/(www\\.)?dndbeyond.com\\/profile\\/([^\\/]*)\\/characters\\/[0-9]*\\/builder#\\/ability-scores\\/.*")
+            let matches = regex.numberOfMatches(in: url.absoluteString, options: [], range: range)
+            if matches > 0 {
+                return true
+            } else {
+                return false
+            }
+        } else {
+            return false
+        }
+    }
+    
+    func checkIfCharacterSheetBuilderClasses(wV: WKWebView) -> Bool {
+        if let url = wV.url {
+            let range = NSRange(location: 0, length: (url.absoluteString as NSString).length)
+            let regex = try! NSRegularExpression(pattern: "http[s]?:\\/\\/(www\\.)?dndbeyond.com\\/profile\\/([^\\/]*)\\/characters\\/[0-9]*\\/builder#\\/class\\/manage.*")
             let matches = regex.numberOfMatches(in: url.absoluteString, options: [], range: range)
             if matches > 0 {
                 return true
@@ -182,7 +228,7 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
             dieRoll = "You rolled " + String(rolled + mod)
         }
         if mod > 0 {
-            dieRoll += "\n" + "(Rolled: " + String(rolled) + "+" + String(mod) + ")"
+            dieRoll += "\n" + "(Rolled: " + String(rolled) + " + " + String(mod) + ")"
         } else if mod < 0 {
             dieRoll += "\n" + "(Rolled: " + String(rolled) + String(mod) + ")"
         }
@@ -273,7 +319,7 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
                         dropped = rolledDice.popLast() ?? 0
                     }
                     rolled = rolledDice.reduce(0, +)
-                    rolledString = rolledDice.map(String.init).joined(separator: "+")
+                    rolledString = rolledDice.map(String.init).joined(separator: " + ")
                     if dropped > 0 {
                         rolledString += ", dropped " + String(dropped)
                     }
@@ -307,7 +353,7 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
                 }
                 theRoll += String(rolled)
                 if (rolledDice.count > 1) {
-                    rolledString = rolledDice.map(String.init).joined(separator: "+")
+                    rolledString = rolledDice.map(String.init).joined(separator: " + ")
                     theRoll += "\n(Rolled: " + rolledString + ")"
                 }
             }
@@ -345,6 +391,41 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
         webView.evaluateJavaScript(js)
     }
     
+    func tryToInputHP(hp: String,_ replace: Bool=false) {
+        let js = (replace) ? """
+        var inputFields = document.getElementsByClassName("builder-field");
+        for(i=0;i<inputFields.length;i++) {
+            if (inputFields[i].childElementCount == 2) {
+                if (inputFields[i].children[0].textContent == "Rolled HP") {
+                    var inputBox = inputFields[i].getElementsByTagName("input")[0];
+                    if (inputBox) {
+                        var currentHP = Number(inputBox.value);
+                        inputBox.focus();
+                        inputBox.value = String(\(hp));
+                        inputBox.blur();
+                    }
+                }
+            }
+        }
+        """ : """
+        var inputFields = document.getElementsByClassName("builder-field");
+        for(i=0;i<inputFields.length;i++) {
+            if (inputFields[i].childElementCount == 2) {
+                if (inputFields[i].children[0].textContent == "Rolled HP") {
+                    var inputBox = inputFields[i].getElementsByTagName("input")[0];
+                    if (inputBox) {
+                        var currentHP = Number(inputBox.value);
+                        inputBox.focus();
+                        inputBox.value = String(currentHP + \(hp));
+                        inputBox.blur();
+                    }
+                }
+            }
+        }
+        """
+        webView.evaluateJavaScript(js)
+    }
+    
     func rollAttack(roll: String, mod: Int, damage: String, damagetype: String) {
         let rolled = Int.random(in: 1...20)
         var dieRoll = "You rolled: "
@@ -358,9 +439,9 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
             dieRoll = "You rolled " + String(rolled + mod)
         }
         if mod > 0 {
-            dieRoll += "\n" + "(Rolled: " + String(rolled) + "+" + String(mod) + ")"
+            dieRoll += "\n" + "(Rolled: " + String(rolled) + " + " + String(mod) + ")"
         } else if mod < 0 {
-            dieRoll += "\n" + "(Rolled: " + String(rolled) + "+" + String(mod) + ")"
+            dieRoll += "\n" + "(Rolled: " + String(rolled) + " + " + String(mod) + ")"
         }
         if damage == "--" {
             dieRoll += "\n" + "(This attack has no damage)"
@@ -446,7 +527,7 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
             let dieRolled = Int.random(in: 1...die)
             rolled += dieRolled
             if rolledString != "" {
-                rolledString += "+"
+                rolledString += " + "
             }
             rolledString += String(dieRolled)
         }
@@ -461,7 +542,7 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
         if mod < 0 {
             dieRoll += "\n" + "(Rolled: " + rolledString + String(mod) + ")"
         } else if mod > 0 {
-            dieRoll += "\n" + "(Rolled: " + rolledString + "+" + String(mod) + ")"
+            dieRoll += "\n" + "(Rolled: " + rolledString + " + " + String(mod) + ")"
         } else if dice > 1 {
             dieRoll += "\n" + "(Rolled: " + rolledString + ")"
         }
@@ -537,6 +618,9 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
             rollDialog.addAction(UIAlertAction(title: "Roll 3d6", style: UIAlertAction.Style.default, handler: {action in self.rollSomeDice(roll: "Roll for Abilities", die: 6, dice: 3)}))
             rollDialog.addAction(UIAlertAction(title: "Roll 4d6 and Drop Lowest", style: UIAlertAction.Style.default, handler: {action in self.rollSomeDice(roll: "Roll for Abilities", die: 6, dice: 4)}))
         }
+        if checkIfCharacterSheetBuilderClasses(wV: webView) {
+            
+        }
         if rollDialog.actions.count < 1 {
             rollStandardDice()
             return
@@ -563,6 +647,64 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
         rollDialog.popoverPresentationController?.sourceView = self.view
         self.present(rollDialog, animated: true, completion: nil)
     }
+    
+    func rollHP(hitdice: [String], _ replaceHP: Bool = false) {
+        let rollDialog = UIAlertController(title: "Virtual Dice Roll", message: "Roll for HP",preferredStyle: .alert)
+        var newHP = 0
+        var rolledString = ""
+        for hitDie in hitdice {
+            let range = NSRange(location: 0, length: (hitDie as NSString).length)
+            let regex = try! NSRegularExpression(pattern: "([0-9]*)d([0-9]*)")
+            let match = regex.firstMatch(in: hitDie, options: [], range: range)
+            var die = 1
+            var dice = 1
+            if match?.numberOfRanges ?? 0 > 0 {
+                if let matchrange = match?.range(at:1) {
+                    if let diceRange = Range(matchrange, in:hitDie) {
+                        dice = Int(hitDie[diceRange]) ?? 1
+                    }
+                }
+                if let matchrange = match?.range(at:2) {
+                    if let diceRange = Range(matchrange, in:hitDie) {
+                        die = Int(hitDie[diceRange]) ?? 6
+                    }
+                }
+            }
+            if replaceHP {
+                for i in 1...dice {
+                    let dieRoll = (newHP == 0) ? die : Int.random(in: 1...die)
+                    newHP += dieRoll
+                    if i == 1 {
+                        rolledString += String(dice) + "d" + String(die) + ": [" + String(dieRoll)
+                    } else {
+                        rolledString += " + " + String(dieRoll)
+                    }
+                }
+                rolledString += "] "
+            } else {
+                rollDialog.addAction(UIAlertAction(title: "Add 1d" + String(die), style: UIAlertAction.Style.default, handler: {
+                    action in
+                    let hdRoll = Int.random(in: 1...die)
+                    let rollDialog = UIAlertController(title: "Virtual Dice Roll", message: String(hdRoll),preferredStyle: .alert)
+                    rollDialog.addAction(UIAlertAction(title: "Thanks!", style: UIAlertAction.Style.default, handler: {action in self.tryToInputHP(hp: String(hdRoll))}))
+                    rollDialog.view.addSubview(UIView())
+                    rollDialog.popoverPresentationController?.sourceView = self.view
+                    self.present(rollDialog, animated: true, completion: nil)
+                }))
+            }
+        }
+        if replaceHP {
+            rollDialog.message = String(newHP) + "\n(Rolled: " + rolledString + ")"
+            rollDialog.addAction(UIAlertAction(title: "Thanks!", style: UIAlertAction.Style.default, handler: {action in self.tryToInputHP(hp: String(newHP),true)}))
+        } else {
+            rollDialog.addAction(UIAlertAction(title: "Thanks!", style: UIAlertAction.Style.default, handler: nil))
+        }
+        rollDialog.view.addSubview(UIView())
+        rollDialog.popoverPresentationController?.sourceView = self.view
+        self.present(rollDialog, animated: true, completion: nil)
+        
+    }
+
     
     func saveCurrentURL(theURL: String? = "") {
         if let myURL = URL(string:theURL ?? "https://www.dndbeyond.com/my-characters") {
