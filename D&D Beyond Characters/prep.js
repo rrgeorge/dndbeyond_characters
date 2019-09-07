@@ -212,6 +212,7 @@ var callback = function(mutationsList, observer) {
         }
     }
 }
+callback.call();
 setTimeout(500,callback.call());
 var observer = new MutationObserver(callback);
 observer.observe(document, config);
