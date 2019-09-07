@@ -1,5 +1,10 @@
 var storedCalls = [];
-
+var handleOfflineAPI = function(calls) {
+    if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.apiCall) {
+        window.webkit.messageHandlers.apiCall.postMessage(JSON.stringify(calls))
+        storedCalls = [];
+    }
+}
 var open_proto_orig = XMLHttpRequest.prototype.open;
 var open_proto_repl = function open(method, url, async, user, password) {
     this._url = url;
@@ -49,6 +54,23 @@ var send_proto_repl = function send(data) {
             respObj.success = true;
             respObj.message = "Success";
             respObj.result = new Object();
+            
+            if (this._url.startsWith("/api/character/conditions/set") && typeof jsonfile !== 'undefined') {
+                if (jsonfile.character.conditions) {
+                    jsonfile.character.conditions.push({id: dataObj.id, level: dataObj.level})
+                }
+                respObj.result = jsonfile.character;
+            } else if (this._url.startsWith("/api/character/conditions/remove") && typeof jsonfile !== 'undefined') {
+                if (jsonfile.character.conditions) {
+                    var conditionIndex = jsonfile.character.conditions.findIndex(x=>x.id==dataObj.id);
+                    if (conditionIndex > -1) {
+                        jsonfile.character.conditions.splice(conditionIndex,1)
+                    }
+                }
+                respObj.result = jsonfile.character;
+            }
+
+            
             this.response = JSON.stringify(respObj);
             this.responseText = JSON.stringify(respObj);
         }
@@ -70,12 +92,16 @@ var send_proto_repl = function send(data) {
             this.responseURL = document.location.protocol + "//" + document.location.host + this._url;
         }
         this.response = jsonfile;
-        this.responseText = jsonfile
+        this.responseText = jsonfile;
         this.onerror = null;
         this.readyState = 4;
         this.onreadystatechange(4);
     }
+    call.url = this._url;
+    call.data = data;
     storedCalls.push(call);
+    
+    handleOfflineAPI(storedCalls);
 };
 var fetch_orig = window.fetch;
 var fetch_repl = function() {
@@ -101,10 +127,10 @@ function updateOnlineStatus() {
         window.XMLHttpRequest.prototype.send = send_proto_orig;
         window.fetch = fetch_orig;
         if (storedCalls.length > 0) {
-            for(var i=0,len=storedCalls.length;i<len;i++) {
-                storedCalls[i].req.send(storedCalls[i].data);
-            }
+            handleOfflineAPI(storedCalls);
+                //storedCalls[i].req.send(storedCalls[i].data);
         }
+        storedCalls = [];
     } else {
         storedCalls = [];
         //        window.webkit.messageHandlers.captureCall.postMessage("Offline")
@@ -123,20 +149,34 @@ var callback = function(mutationsList, observer) {
     var siteBar = document.getElementsByClassName('site-bar');
     var siteHeader = document.getElementsByClassName('main');
     if (siteBar[0]) {
-        siteBar[0].remove()
+        //siteBar[0].remove()
+        siteBar[0].style.display = "none";
     }
     if (siteHeader[0] && siteHeader[0].id != "content") {
-        siteHeader[0].remove();
+        //siteHeader[0].remove();
+        siteHeader[0].style.display = "none";
     }
-    var headerSize = parseInt(window.getComputedStyle(document.getElementById('site-main')).paddingTop);
-    document.getElementById('site-main').style.paddingTop = 0;
-    var charSheet = document.getElementsByClassName('ct-character-sheet-mobile');
-    if (charSheet[0]) { var padding = parseInt(window.getComputedStyle(charSheet[0]).paddingTop); charSheet[0].style.paddingTop = padding - headerSize; }
+    if (document.getElementById('mega-menu-target')) {
+        document.getElementById('mega-menu-target').style.display = "none"
+    }
+    if (document.getElementById('site-main')) {
+        var headerSize = parseInt(window.getComputedStyle(document.getElementById('site-main')).paddingTop);
+        document.getElementById('site-main').style.paddingTop = 0;
+        var charSheet = document.getElementsByClassName('ct-character-sheet-mobile');
+        if (charSheet[0]) {
+            var padding = parseInt(window.getComputedStyle(charSheet[0]).paddingTop);
+            charSheet[0].style.paddingTop = padding - headerSize;
+        }
+    }
+    var tabletCharacterHeader = document.getElementsByClassName('ct-character-header-tablet');
+    if (tabletCharacterHeader[0]) {
+        document.body.style.backgroundPositionY = getComputedStyle(tabletCharacterHeader[0]).height
+    }
     var charHeader = document.getElementsByClassName('ct-character-sheet-mobile__header');
     if (charHeader[0]) { charHeader[0].style.top = 0; }
     var charBHeader = document.getElementsByClassName('builder-sections');
     if (charBHeader[0]) { charBHeader[0].style.top = 0; }
-    
+
     var popoutmenu = document.getElementsByClassName("ct-popout-menu");
     if (popoutmenu[0] && !document.getElementById("backtolistitem")) {
         for(var i=0,len=popoutmenu[0].children.length;i<len;i++){
@@ -158,15 +198,21 @@ var callback = function(mutationsList, observer) {
         menuitem.appendChild(menuitema);
         menuitem.appendChild(menuitemb);
         popoutmenu[0].appendChild(menuitem);
-        menuitem.addEventListener("click", function(){window.location='/my-characters';});
+        menuitem.addEventListener("click", function(){
+                                  if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.navFunction) {
+                                    window.webkit.messageHandlers.navFunction.postMessage("GoHome");
+                                  } else {
+                                    window.location='/my-characters';
+                                  }});
     }
     if (document.location.pathname == "/my-characters") {
         if (document.getElementById('footer')) {
-            document.getElementById('footer').remove()
+//            document.getElementById('footer').remove()
+            document.getElementById('footer').style.display = "none";
         }
     }
 }
-setTimeout(1000,callback.call());
+setTimeout(500,callback.call());
 var observer = new MutationObserver(callback);
 observer.observe(document, config);
 

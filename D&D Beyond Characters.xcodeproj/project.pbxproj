@@ -7,10 +7,13 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		DA1B9FD92321718000837852 /* Reachability.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA1B9FD82321718000837852 /* Reachability.swift */; };
 		DA29EC96231887A4005698A9 /* VMInsults.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA29EC95231887A4005698A9 /* VMInsults.swift */; };
+		DA37AB4C2322F53D00206943 /* UserDefaults_StructExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA37AB4B2322F53D00206943 /* UserDefaults_StructExtension.swift */; };
 		DA73D5BC2310E21600B24C31 /* prep.js in Resources */ = {isa = PBXBuildFile; fileRef = DA73D5BB2310E21600B24C31 /* prep.js */; };
 		DA73D5BE2310E31200B24C31 /* imgpreload.js in Resources */ = {isa = PBXBuildFile; fileRef = DA73D5BD2310E31200B24C31 /* imgpreload.js */; };
 		DA73D5C02310E39400B24C31 /* diceparser.js in Resources */ = {isa = PBXBuildFile; fileRef = DA73D5BF2310E39400B24C31 /* diceparser.js */; };
+		DAA3444A2320B044000B890F /* URLSessionExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAA344492320B044000B890F /* URLSessionExtension.swift */; };
 		DAA8FC992317047D002254F3 /* WebArchive.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAA8FC982317047D002254F3 /* WebArchive.swift */; };
 		DAABE72322D6C6380018691D /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAABE72222D6C6380018691D /* AppDelegate.swift */; };
 		DAABE72522D6C6380018691D /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAABE72422D6C6380018691D /* ViewController.swift */; };
@@ -39,10 +42,13 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		DA1B9FD82321718000837852 /* Reachability.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Reachability.swift; sourceTree = "<group>"; };
 		DA29EC95231887A4005698A9 /* VMInsults.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VMInsults.swift; sourceTree = "<group>"; };
+		DA37AB4B2322F53D00206943 /* UserDefaults_StructExtension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserDefaults_StructExtension.swift; sourceTree = "<group>"; };
 		DA73D5BB2310E21600B24C31 /* prep.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = prep.js; sourceTree = "<group>"; };
 		DA73D5BD2310E31200B24C31 /* imgpreload.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = imgpreload.js; sourceTree = "<group>"; };
 		DA73D5BF2310E39400B24C31 /* diceparser.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = diceparser.js; sourceTree = "<group>"; };
+		DAA344492320B044000B890F /* URLSessionExtension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLSessionExtension.swift; sourceTree = "<group>"; };
 		DAA8FC982317047D002254F3 /* WebArchive.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = WebArchive.swift; sourceTree = "<group>"; };
 		DAABE71F22D6C6380018691D /* D&D Beyond Characters.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "D&D Beyond Characters.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		DAABE72222D6C6380018691D /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -109,7 +115,10 @@
 			children = (
 				DAABE72222D6C6380018691D /* AppDelegate.swift */,
 				DAABE72422D6C6380018691D /* ViewController.swift */,
+				DA37AB4B2322F53D00206943 /* UserDefaults_StructExtension.swift */,
+				DAA344492320B044000B890F /* URLSessionExtension.swift */,
 				DA29EC95231887A4005698A9 /* VMInsults.swift */,
+				DA1B9FD82321718000837852 /* Reachability.swift */,
 				DA73D5BF2310E39400B24C31 /* diceparser.js */,
 				DA73D5BD2310E31200B24C31 /* imgpreload.js */,
 				DAA8FC982317047D002254F3 /* WebArchive.swift */,
@@ -274,7 +283,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				DAA3444A2320B044000B890F /* URLSessionExtension.swift in Sources */,
+				DA37AB4C2322F53D00206943 /* UserDefaults_StructExtension.swift in Sources */,
 				DAABE72522D6C6380018691D /* ViewController.swift in Sources */,
+				DA1B9FD92321718000837852 /* Reachability.swift in Sources */,
 				DAABE72322D6C6380018691D /* AppDelegate.swift in Sources */,
 				DAA8FC992317047D002254F3 /* WebArchive.swift in Sources */,
 				DA29EC96231887A4005698A9 /* VMInsults.swift in Sources */,
