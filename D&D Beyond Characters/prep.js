@@ -3,6 +3,9 @@ var handleOfflineAPI = function(calls) {
     if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.apiCall) {
         window.webkit.messageHandlers.apiCall.postMessage(JSON.stringify(calls))
         storedCalls = [];
+    } else if (AndroidApp && AndroidApp.apiCall) {
+        AndroidApp.apiCall(JSON.stringify(calls));
+        storedCalls = [];
     }
 }
 var open_proto_orig = XMLHttpRequest.prototype.open;
@@ -201,6 +204,8 @@ var callback = function(mutationsList, observer) {
         menuitem.addEventListener("click", function(){
                                   if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.navFunction) {
                                     window.webkit.messageHandlers.navFunction.postMessage("GoHome");
+                                  } else if (AndroidApp && AndroidApp.navFunction) {
+                                    AndroidApp.navFunction("GoHome");
                                   } else {
                                     window.location='/my-characters';
                                   }});
