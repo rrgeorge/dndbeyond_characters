@@ -917,15 +917,16 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
                     }
                     let apiQueryString = urls[0] + "&useHomebrew=" + String(homebrew) + "&activeSourceCategories=" + sources
                     urls.remove(at: 0)
-                    headcontents.append("\njsonfile = ")
-                    headcontents.append(contents)
-                    headcontents.append(";\njsonconfig = ")
-                    headcontents.append(jsonconfig)
-                    headcontents.append(";\njsoncharsvc = ")
-                    headcontents.append(jsoncharsvc)
-                    headcontents.append(";\njsonequip = ")
+                    var jsonvalues = ""
+                    jsonvalues.append("\njsonfile = ")
+                    jsonvalues.append(contents)
+                    jsonvalues.append(";\njsonconfig = ")
+                    jsonvalues.append(jsonconfig)
+                    jsonvalues.append(";\njsoncharsvc = ")
+                    jsonvalues.append(jsoncharsvc)
+                    jsonvalues.append(";\njsonequip = ")
                     let jsonequip = try String(contentsOf:(URL(string: "https://www.dndbeyond.com/api/equipment/list/json?" + apiQueryString)!))
-                    headcontents.append(jsonequip)
+                    jsonvalues.append(jsonequip)
                     itemNo = 4.0
                     DispatchQueue.main.sync {
                         if self._archivebar != nil {
@@ -933,20 +934,22 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
                         }
                     }
                     if classIds.count > 0 {
-                        headcontents.append(";\njsonspells = []")
+                        jsonvalues.append(";\njsonspells = []")
                         for classId in classIds {
-                            headcontents.append(";\njsonspells[\"" + classId.stringValue + "\"] = ")
+                            jsonvalues.append(";\njsonspells[\"" + classId.stringValue + "\"] = ")
                             let jsonspell = try String(contentsOf:(URL(string: "https://www.dndbeyond.com/api/spells/list/json?" + apiQueryString + "&characterClassId=" + classId.stringValue)!))
-                            headcontents.append(jsonspell)
+                            jsonvalues.append(jsonspell)
                         }
                     }
-                    headcontents.append(";\n\n")
+                    jsonvalues.append(";\n\n")
                     itemNo = 5.0
                     DispatchQueue.main.sync {
                         if self._archivebar != nil {
                             self._archivebar!.progress = itemNo/itemcount
                         }
+                        self.webView.evaluateJavaScript(jsonvalues)
                     }
+                    headcontents.append(jsonvalues)
                 }
                 let jsprep = try String(contentsOf:Bundle.main.url(forResource: "prep", withExtension: "js")!)
                 headcontents.append(jsprep)
