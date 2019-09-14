@@ -355,50 +355,50 @@ var uniqueImgs = [];
 $.each(allImages, function(i, el){
    if($.inArray(el, uniqueImgs) === -1 && el) {
        // These images always fail, remove them
-       if (!el.endsWith("/Skins/images/markitup/menu.png")
-           && !el.endsWith("/Skins/images/markitup/submenu.png")
-           && !el.endsWith("/Skins/Waterdeep/images/ui/grippie.png")
-           && !el.endsWith("/Skins/Waterdeep/images/icons/16x16/vanity-icon-staff.png")
-           && !el.endsWith("/Skins/Blocks/images/icons/twitch/twitchlogo.png")
-           && !el.endsWith("/Skins/Blocks/images/icons/twitch/glitch-white.png")
-           && !el.endsWith("/Skins/Waterdeep/images/logo.png")
-           && !el.endsWith("/Skins/Global/images/ui/remove3.png")
-           && !el.endsWith("/Skins/Waterdeep/images/sourcepoint-logo.png")
-           && !el.endsWith("/Skins/Blocks/images/icons/16x16/grey/icon-moderator-arrow-down.png")
-           && !el.endsWith("/Skins/Waterdeep/images/logo-home.png")
-           && !el.endsWith("/Skins/Waterdeep/images/responsive-login-logo.svg")
-           && !el.endsWith("/Skins/Waterdeep/css/images/ui-icons_444444_256x240.png")
-           && !el.endsWith("/Skins/Waterdeep/css/images/ui-icons_555555_256x240.png")
-           && !el.endsWith("/Skins/Waterdeep/css/images/ui-icons_ffffff_256x240.png")
-           && !el.endsWith("/Skins/Waterdeep/css/images/ui-icons_777620_256x240.png")
-           && !el.endsWith("/Skins/Waterdeep/css/images/ui-icons_cc0000_256x240.png")
-           && !el.endsWith("/Skins/Waterdeep/css/images/ui-icons_777777_256x240.png")
-           && !el.endsWith("/Skins/Waterdeep/images/ui/ajax-loader-light.gif")
-           && !el.endsWith("/Skins/Waterdeep/images/icons/classes/barbarian.png")
-           && !el.endsWith("/Skins/Waterdeep/images/icons/classes/fighter.png")
-           && !el.endsWith("/Skins/Waterdeep/images/icons/classes/monk.png")
-           && !el.endsWith("/Skins/Waterdeep/images/icons/classes/rogue.png")
-           && !el.endsWith("/Skins/Waterdeep/images/icons/item_types/artifact.jpg")
-           && !el.endsWith("/Skins/Waterdeep/images/sprites/plus_minus-spells.svg")
-           && !el.endsWith("/Skins/Waterdeep/images/icons/conditions/exhausted.svg")
-           && !el.endsWith("/Skins/Waterdeep/images/icons/classes/barbarian_icon@2x.png")
-           && !el.endsWith("/Skins/Waterdeep/images/icons/classes/fighter_icon@2x.png")
-           && !el.endsWith("/Skins/Waterdeep/images/icons/classes/monk_icon@2x.png")
-           && !el.endsWith("/Skins/Waterdeep/images/icons/classes/rogue_icon@2x.png")
-           && !el.endsWith("/Skins/Waterdeep/images/icons/monsters/aberration_icon.jpg")
-           && !el.endsWith("/Skins/Waterdeep/images/icons/monsters/beast_icon.jpg")
-           && !el.endsWith("/Skins/Waterdeep/images/icons/monsters/celestial_icon.jpg")
-           && !el.endsWith("/Skins/Waterdeep/images/icons/monsters/construct_icon.jpg")
-           && !el.endsWith("/Skins/Waterdeep/images/icons/monsters/dragon_icon.jpg")
-           && !el.endsWith("/Skins/Waterdeep/images/icons/monsters/elemental_icon.jpg")
-           && !el.endsWith("/Skins/Waterdeep/images/icons/monsters/fey_icon.jpg")
-           && !el.endsWith("/Skins/Waterdeep/images/icons/monsters/fiend_icon.jpg")
-           && !el.endsWith("/Skins/Waterdeep/images/icons/monsters/giant_icon.jpg")
-           && !el.endsWith("/Skins/Waterdeep/images/icons/monsters/humanoid_icon.jpg")
-           && !el.endsWith("/Skins/Waterdeep/images/icons/monsters/monstrosity_icon.jpg")
-           && !el.endsWith("/Skins/Waterdeep/images/icons/monsters/ooze_icon.jpg")
-           && !el.endsWith("/Skins/Waterdeep/images/icons/monsters/plant_icon.jpg")
-           && !el.endsWith("/Skins/Waterdeep/images/icons/monsters/undead_icon.jpg")
+       if (!el.endsWith("/Skins/images/markitup/menu.png") &&
+           !el.endsWith("/Skins/images/markitup/submenu.png") &&
+           !el.endsWith("/Skins/Waterdeep/images/ui/grippie.png") &&
+           !el.endsWith("/Skins/Waterdeep/images/icons/16x16/vanity-icon-staff.png") &&
+           !el.endsWith("/Skins/Blocks/images/icons/twitch/twitchlogo.png") &&
+           !el.endsWith("/Skins/Blocks/images/icons/twitch/glitch-white.png") &&
+           !el.endsWith("/Skins/Waterdeep/images/logo.png") &&
+           !el.endsWith("/Skins/Global/images/ui/remove3.png") &&
+           !el.endsWith("/Skins/Waterdeep/images/sourcepoint-logo.png") &&
+           !el.endsWith("/Skins/Blocks/images/icons/16x16/grey/icon-moderator-arrow-down.png") &&
+           !el.endsWith("/Skins/Waterdeep/images/logo-home.png") &&
+           !el.endsWith("/Skins/Waterdeep/images/responsive-login-logo.svg") &&
+           !el.endsWith("/Skins/Waterdeep/css/images/ui-icons_444444_256x240.png") &&
+           !el.endsWith("/Skins/Waterdeep/css/images/ui-icons_555555_256x240.png") &&
+           !el.endsWith("/Skins/Waterdeep/css/images/ui-icons_ffffff_256x240.png") &&
+           !el.endsWith("/Skins/Waterdeep/css/images/ui-icons_777620_256x240.png") &&
+           !el.endsWith("/Skins/Waterdeep/css/images/ui-icons_cc0000_256x240.png") &&
+           !el.endsWith("/Skins/Waterdeep/css/images/ui-icons_777777_256x240.png") &&
+           !el.endsWith("/Skins/Waterdeep/images/ui/ajax-loader-light.gif") &&
+           !el.endsWith("/Skins/Waterdeep/images/icons/classes/barbarian.png") &&
+           !el.endsWith("/Skins/Waterdeep/images/icons/classes/fighter.png") &&
+           !el.endsWith("/Skins/Waterdeep/images/icons/classes/monk.png") &&
+           !el.endsWith("/Skins/Waterdeep/images/icons/classes/rogue.png") &&
+           !el.endsWith("/Skins/Waterdeep/images/icons/item_types/artifact.jpg") &&
+           !el.endsWith("/Skins/Waterdeep/images/sprites/plus_minus-spells.svg") &&
+           !el.endsWith("/Skins/Waterdeep/images/icons/conditions/exhausted.svg") &&
+           !el.endsWith("/Skins/Waterdeep/images/icons/classes/barbarian_icon@2x.png") &&
+           !el.endsWith("/Skins/Waterdeep/images/icons/classes/fighter_icon@2x.png") &&
+           !el.endsWith("/Skins/Waterdeep/images/icons/classes/monk_icon@2x.png") &&
+           !el.endsWith("/Skins/Waterdeep/images/icons/classes/rogue_icon@2x.png") &&
+           !el.endsWith("/Skins/Waterdeep/images/icons/monsters/aberration_icon.jpg") &&
+           !el.endsWith("/Skins/Waterdeep/images/icons/monsters/beast_icon.jpg") &&
+           !el.endsWith("/Skins/Waterdeep/images/icons/monsters/celestial_icon.jpg") &&
+           !el.endsWith("/Skins/Waterdeep/images/icons/monsters/construct_icon.jpg") &&
+           !el.endsWith("/Skins/Waterdeep/images/icons/monsters/dragon_icon.jpg") &&
+           !el.endsWith("/Skins/Waterdeep/images/icons/monsters/elemental_icon.jpg") &&
+           !el.endsWith("/Skins/Waterdeep/images/icons/monsters/fey_icon.jpg") &&
+           !el.endsWith("/Skins/Waterdeep/images/icons/monsters/fiend_icon.jpg") &&
+           !el.endsWith("/Skins/Waterdeep/images/icons/monsters/giant_icon.jpg") &&
+           !el.endsWith("/Skins/Waterdeep/images/icons/monsters/humanoid_icon.jpg") &&
+           !el.endsWith("/Skins/Waterdeep/images/icons/monsters/monstrosity_icon.jpg") &&
+           !el.endsWith("/Skins/Waterdeep/images/icons/monsters/ooze_icon.jpg") &&
+           !el.endsWith("/Skins/Waterdeep/images/icons/monsters/plant_icon.jpg") &&
+           !el.endsWith("/Skins/Waterdeep/images/icons/monsters/undead_icon.jpg")
            ) {
                 uniqueImgs.push(el);
             }
@@ -432,7 +432,7 @@ if (dataTarget) {
                         uniqueRes.push(el);
             }
            });
-    uniqueRes.unshift("username=" + ddbuser + "&characterId=" + ddbchID + "&csrfToken=" + ddbtoken)
+    uniqueRes.unshift("username=" + ddbuser + "&characterId=" + ddbchID + "&csrfToken=" + ddbtoken);
     uniqueRes;
 } else {
     [];

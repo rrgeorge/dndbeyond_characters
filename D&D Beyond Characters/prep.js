@@ -1,13 +1,13 @@
 var storedCalls = [];
 var handleOfflineAPI = function(calls) {
     if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.apiCall) {
-        window.webkit.messageHandlers.apiCall.postMessage(JSON.stringify(calls))
+        window.webkit.messageHandlers.apiCall.postMessage(JSON.stringify(calls));
         storedCalls = [];
     } else if (AndroidApp && AndroidApp.apiCall) {
         AndroidApp.apiCall(JSON.stringify(calls));
         storedCalls = [];
     }
-}
+};
 var open_proto_orig = XMLHttpRequest.prototype.open;
 var open_proto_repl = function open(method, url, async, user, password) {
     this._url = url;
@@ -15,16 +15,16 @@ var open_proto_repl = function open(method, url, async, user, password) {
 };
 var send_proto_orig = XMLHttpRequest.prototype.send;
 var send_proto_repl = function send(data) {
-    var call = new Object();
+    var call = {};
     var dataObj = JSON.parse(data);
     if (this._url.startsWith("/api/")) {
-        Object.defineProperty(this,'readyState', { configurable: true, writable: true, });
-        Object.defineProperty(this,'status', { configurable: true, writable: true, });
-        Object.defineProperty(this,'statusText', { configurable: true, writable: true, });
-        Object.defineProperty(this,'response', { configurable: true, writable: true, });
-        Object.defineProperty(this,'responseText', { configurable: true, writable: true, });
-        Object.defineProperty(this,'responseURL', { configurable: true, writable: true, });
-        Object.defineProperty(this,'responseType', { configurable: true, writable: true, });
+        Object.defineProperty(this,'readyState', { configurable: true, writable: true });
+        Object.defineProperty(this,'status', { configurable: true, writable: true });
+        Object.defineProperty(this,'statusText', { configurable: true, writable: true });
+        Object.defineProperty(this,'response', { configurable: true, writable: true });
+        Object.defineProperty(this,'responseText', { configurable: true, writable: true });
+        Object.defineProperty(this,'responseURL', { configurable: true, writable: true });
+        Object.defineProperty(this,'responseType', { configurable: true, writable: true });
         this.status = 200;
         this.statusText = "OK";
         if (this._url.startsWith("http")) {
@@ -50,26 +50,27 @@ var send_proto_repl = function send(data) {
             this.response = jsonequip;
             this.responseText = jsonequip;
         } else {
-            var respObj = new Object();
+            var respObj = {};
             if (dataObj && dataObj.characterId) {
                 respObj.id = dataObj.characterId;
             }
             respObj.success = true;
             respObj.message = "Success";
-            respObj.result = new Object();
+            respObj.result = {};
             if (this._url.startsWith("/api/character/") && typeof jsonfile !== 'undefined') {
                 var character = jsonfile.character;
                 var apiRegex = new RegExp(".*/api/character/([^/]+)/?([^/]*)/?(.*)");
-                characterAPI = apiRegex.exec(this._url);
+                var characterAPI = apiRegex.exec(this._url);
+		var idx,level,message;
                 switch(characterAPI[1]) {
                     case "ability-score":
                         if (characterAPI[2] && characterAPI[2] == "set") {
                             if (dataObj.type == 2) {
-                                var idx = character.bonusStats.findIndex(x=>x.id==dataObj.id);
+                                idx = character.bonusStats.findIndex(x=>x.id == dataObj.id);
                                 character.bonusStats[idx] = dataObj.value;
                             }
                             if (dataObj.type == 3) {
-                                var idx = character.overrideStats.findIndex(x=>x.id==dataObj.id);
+                                idx = character.overrideStats.findIndex(x=>x.id==dataObj.id);
                                 character.overrideStats[idx] = dataObj.value;
                             }
                         }
@@ -82,11 +83,11 @@ var send_proto_repl = function send(data) {
                     break;
                     case "conditions":
                         if (character.conditions && characterAPI[2] == "set") {
-                            var conditionIndex = character.conditions.findIndex(x=>x.id==dataObj.id);
-                            if (conditionIndex > -1) {
-                                character.conditions[conditionIndex].level = dataObj.level;
+                            idx = character.conditions.findIndex(x=>x.id==dataObj.id);
+                            if (idx > -1) {
+                                character.conditions[idx].level = dataObj.level;
                                 if (dataObj.id == 4 && dataObj.level == null) {
-                                    character.conditions.splice(conditionIndex,1);
+                                    character.conditions.splice(idx,1);
                                 }
                             } else {
                                 character.conditions.push({id: dataObj.id, level: dataObj.level});
@@ -94,8 +95,8 @@ var send_proto_repl = function send(data) {
                             
                         }
                         else if (character.conditions && characterAPI[2] == "remove") {
-                            var conditionIndex = character.conditions.findIndex(x=>x.id==dataObj.id);
-                            if (conditionIndex > -1) character.conditions.splice(conditionIndex,1);
+                            idx = character.conditions.findIndex(x=>x.id==dataObj.id);
+                            if (idx > -1) character.conditions.splice(idx,1);
                         }
                         respObj.result = {
                                 "removedHitPoints": character.removedHitPoints,
@@ -120,11 +121,11 @@ var send_proto_repl = function send(data) {
                     break;
                     case "limiteduse":
                         if (characterAPI[2] && characterAPI[2] == "set") {
-                            var idx = character.actions.class(x=>x.id==dataObj.id);
+                            idx = character.actions.class(x=>x.id==dataObj.id);
                             if (idx > -1) {
                                 character.actions.class[idx].limitedUse.numberUsed = dataObj.uses;
                             }
-                            var idx = character.actions.race(x=>x.id==dataObj.id);
+                            idx = character.actions.race(x=>x.id==dataObj.id);
                             if (idx > -1) {
                                 character.actions.race[idx].limitedUse.numberUsed = dataObj.uses;
                             }
@@ -132,8 +133,8 @@ var send_proto_repl = function send(data) {
                     break;
                     case "long-rest":
                         if (characterAPI[2] && characterAPI[2].startsWith("message")) {
-                            var message = "Up to ";
-                            var level = 0;
+                            message = "Up to ";
+                            level = 0;
                             character.classes.forEach(function(cl){ level += cl.level; });
                             if (level>1) { message += Math.floor(level/2).toString(); } else { message += "1"; }
                             message += " Hit Dice";
@@ -166,10 +167,10 @@ var send_proto_repl = function send(data) {
                         } else {
                             var classes = character.classes;
                             classes.sort(function (a, b) { return a.definition.name < b.definition.name ? -1 : a.definition.name > b.definition.name ? 1 : 0; });
-                            var level = 0;
+                            level = 0;
                             var hitdice = 1;
                             classes.forEach(function(cl){ level += cl.level; });
-                            if (level>1) { hitdice = Math.floor(level/2) }
+                            if (level>1) { hitdice = Math.floor(level/2); }
                             classes.forEach(function(cl){
                                             if (cl.hitDiceUsed <= hitdice) {
                                                 hitdice = hitdice - cl.hitDiceUsed;
@@ -200,12 +201,12 @@ var send_proto_repl = function send(data) {
                                 character.removedHitPoints = 0;
                             }
                             if (dataObj.adjustConditionLevel) {
-                                    var conditionIndex = character.conditions.findIndex(x=>x.id==4);
-                                    if (conditionIndex > -1) {
-                                        var exhaust = character.conditions[conditionIndex]
+                                    idx = character.conditions.findIndex(x=>x.id==4);
+                                    if (idx > -1) {
+                                        var exhaust = character.conditions[idx];
                                         exhaust.level--;
                                         if (exhaust.level < 1) {
-                                            character.conditions.splice(conditionIndex,1);
+                                            character.conditions.splice(idx,1);
                                         }
                                     }
                             }
@@ -232,19 +233,19 @@ var send_proto_repl = function send(data) {
                     break;
                     case "pactMagic":
                         if (characterAPI[2] && characterAPI[2] == "slot" && characterAPI[3] && characterAPI[3] == "use") {
-                            var idx = character.pactMagic.findIndex(x=>x.level==dataObj.level);
+                            idx = character.pactMagic.findIndex(x=>x.level==dataObj.level);
                             character.pactMagic[idx].used ++;
                             if (character.pactMagic[idx].used < 0) character.pactMagic[idx].used = 0;
                         }
                         if (characterAPI[2] && characterAPI[2] == "slot" && characterAPI[3] && characterAPI[3] == "clear") {
-                            var idx = character.pactMagic.findIndex(x=>x.level==dataObj.level);
+                            idx = character.pactMagic.findIndex(x=>x.level==dataObj.level);
                             character.pactMagic[idx].used --;
                             if (character.pactMagic[idx].used < 0) character.pactMagic[idx].used = 0;
                         }
                     break;
                     case "short-rest":
                         if (characterAPI[2] && characterAPI[2].startsWith("message")) {
-                            var message = "";
+                            message = "";
                             character.actions.class.forEach(function(cl) {
                                          if (cl.limitedUse) {
                                             if (cl.limitedUse.resetType == 1) {
@@ -305,12 +306,12 @@ var send_proto_repl = function send(data) {
                         break;
                         case "spells":
                         if (characterAPI[2] && characterAPI[2] == "slot" && characterAPI[3] && characterAPI[3] == "use") {
-                            var idx = character.spellSlots.findIndex(x=>x.level==dataObj.level);
+                            idx = character.spellSlots.findIndex(x=>x.level==dataObj.level);
                             character.spellSlots[idx].used ++;
                             if (character.spellSlots[idx].used < 0) character.spellSlots[idx].used = 0;
                         }
                         if (characterAPI[2] && characterAPI[2] == "slot" && characterAPI[3] && characterAPI[3] == "clear") {
-                            var idx = character.spellSlots.findIndex(x=>x.level==dataObj.level);
+                            idx = character.spellSlots.findIndex(x=>x.level==dataObj.level);
                             character.spellSlots[idx].used --;
                             if (character.spellSlots[idx].used < 0) character.spellSlots[idx].used = 0;
                         }
@@ -321,7 +322,6 @@ var send_proto_repl = function send(data) {
             this.response = JSON.stringify(respObj);
             this.responseText = JSON.stringify(respObj);
         }
-        console.log(this.response)
         this.readyState = 4;
         this.onreadystatechange(4);
     } else if (document.getElementById("character-sheet-target") && this._url.endsWith(document.getElementById("character-sheet-target").getAttribute("data-character-endpoint")) && typeof jsonfile !== 'undefined'){
@@ -366,7 +366,7 @@ var fetch_repl = function() {
     } else {
         return fetch_orig.apply(this,arguments);
     }
-}
+};
 
 function updateOnlineStatus() {
     if(navigator.onLine) {
@@ -398,14 +398,17 @@ var callback = function(mutationsList, observer) {
     var siteHeader = document.getElementsByClassName('main');
     if (siteBar[0]) {
         //siteBar[0].remove()
+        siteBar[0].style.height = 0;
         siteBar[0].style.display = "none";
     }
     if (siteHeader[0] && siteHeader[0].id != "content") {
         //siteHeader[0].remove();
+        siteHeader[0].style.height = 0;
         siteHeader[0].style.display = "none";
     }
     if (document.getElementById('mega-menu-target')) {
-        document.getElementById('mega-menu-target').style.display = "none"
+        document.getElementById('mega-menu-target').style.height = 0;
+        document.getElementById('mega-menu-target').style.display = "none";
     }
     if (document.getElementById('site-main')) {
         var headerSize = parseInt(window.getComputedStyle(document.getElementById('site-main')).paddingTop);
@@ -418,10 +421,20 @@ var callback = function(mutationsList, observer) {
     }
     var tabletCharacterHeader = document.getElementsByClassName('ct-character-header-tablet');
     if (tabletCharacterHeader[0]) {
-        document.body.style.backgroundPositionY = getComputedStyle(tabletCharacterHeader[0]).height
+        document.body.style.backgroundPositionY = getComputedStyle(tabletCharacterHeader[0]).height;
     }
+    var desktopCharacterHeader = document.getElementsByClassName('ct-character-header-desktop');
+    if (desktopCharacterHeader[0]) {
+        document.body.style.backgroundPositionY = getComputedStyle(desktopCharacterHeader[0]).height;
+    }
+    
     var charHeader = document.getElementsByClassName('ct-character-sheet-mobile__header');
-    if (charHeader[0]) { charHeader[0].style.top = 0; }
+    if (charHeader[0]) {
+        charHeader[0].style.top = 0;
+        if (document.getElementsByClassName("ct-component-carousel__placeholders")[0]) {
+            document.getElementsByClassName("ct-component-carousel__placeholders")[0].style.top = getComputedStyle(charHeader[0]).height;
+        }
+    }
     var charBHeader = document.getElementsByClassName('builder-sections');
     if (charBHeader[0]) { charBHeader[0].style.top = 0; }
 
@@ -437,7 +450,7 @@ var callback = function(mutationsList, observer) {
         var menuitemb = document.createElement("div");
         var menuicon = document.createElement("i");
         menuitem.id = "backtolistitem";
-        menuitem.className = "ct-popout-menu__item"
+        menuitem.className = "ct-popout-menu__item";
         menuicon.className = "i-menu-portrait";
         menuitema.className = "ct-popout-menu__item-preview";
         menuitemb.className = "ct-popout-menu__item-label";
@@ -455,13 +468,23 @@ var callback = function(mutationsList, observer) {
                                     window.location='/my-characters';
                                   }});
     }
+    if (document.getElementsByClassName("ct-quick-nav--closed")[0]) {
+        document.getElementsByClassName("ct-quick-nav--closed")[0].style.top = "";
+    }
+    if (document.getElementsByClassName("ct-quick-nav--opened")[0]) {
+        document.getElementsByClassName("ct-quick-nav--opened")[0].style.top = 0;
+    }
+    if (document.getElementsByClassName("ct-quick-nav--opened")[0]) {
+        document.getElementsByClassName("ct-quick-nav--opened")[0].style.top = 0;
+    }
+    
     if (document.location.pathname == "/my-characters") {
         if (document.getElementById('footer')) {
 //            document.getElementById('footer').remove()
             document.getElementById('footer').style.display = "none";
         }
     }
-}
+};
 callback.call();
 setTimeout(500,callback.call());
 var observer = new MutationObserver(callback);

@@ -63,6 +63,7 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
         
         webConfiguration.websiteDataStore = webDataStore
         webConfiguration.dataDetectorTypes = []
+        webConfiguration.setURLSchemeHandler(DDBCacheHandler(), forURLScheme: "ddbcache")
         let contentController = WKUserContentController()
         contentController.add(self,name: "captureCall")
         contentController.add(self,name: "navFunction")
@@ -105,19 +106,6 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
         }catch{
             print("could not start reachability notifier")
         }
-        DispatchQueue.global(qos: .background).async {
-            do {
-                let cacheDir = try FileManager.default.url(for: .cachesDirectory, in: .userDomainMask, appropriateFor: nil, create: true).appendingPathComponent("com.dndbeyond.resourcecache", isDirectory: true)
-                let cachefiles = try FileManager.default.contentsOfDirectory(at: cacheDir, includingPropertiesForKeys: nil, options: [])
-                for cacheFile in cachefiles {
-                    let cacheFileAttrib = try FileManager.default.attributesOfItem(atPath: cacheFile.path)
-                    let cacheFileCreation = cacheFileAttrib[FileAttributeKey.creationDate] as! Date
-                    if cacheFileCreation.timeIntervalSinceNow < -86400 {
-                        try FileManager.default.removeItem(atPath: cacheFile.path)
-                    }
-                }
-            } catch let error { print ("Could not clean cache: \(error)") }
-        }
     }
     
     @objc func reachabilityChanged(note: Notification) {
@@ -132,7 +120,7 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
                     for call in self.queuedAPICalls {
                         let url = call.url ?? ""
                         let data = call.data ?? ""
-                        if url.hasPrefix("/api") && url != "/api/character/services" && !url.hasPrefix("/api/config/json") && !url.hasPrefix("/api/subscriptionlevel") {
+                        if url.hasPrefix("/api") && url != "/api/character/services" && !url.hasPrefix("/api/config/json") && !url.hasPrefix("/api/subscriptionlevel") && call.data != nil {
                             if !self.sendAPICall(url: url, data: data) {
                                 newAPIQueue.append(call)
                             }
@@ -220,7 +208,8 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
     override func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey : Any]?, context: UnsafeMutableRawPointer?) {
         if keyPath == "estimatedProgress" {
             if Float(webView.estimatedProgress) == 1 {
-                if !(self.webView.url?.absoluteString.hasSuffix(".webarchive"))! {
+                if !(self.webView.url?.absoluteString.hasSuffix(".html"))! && self.webView.url?.scheme != "ddbcache" {
+                    print ("Scheme: \(self.webView.url?.scheme)")
                     do {
                         let js = try String(contentsOfFile: Bundle.main.path(forResource: "prep", ofType: "js")!)
                         self.webView.evaluateJavaScript(js)
@@ -284,11 +273,11 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
     
     func checkIfCharacterSheet(wV: WKWebView) -> Bool {
         if let url = wV.url {
-            if (wV.url?.absoluteString.hasSuffix(".webarchive"))! && (wV.url?.absoluteString.hasPrefix("file://"))! && !(wV.url?.absoluteString.hasSuffix("my-characters.webarchive"))! {
+            if (wV.url?.absoluteString.hasSuffix(".html"))! && (wV.url?.absoluteString.hasPrefix("file://"))! && !(wV.url?.absoluteString.hasSuffix("my-characters.html"))! {
                 return true
             }
             let range = NSRange(location: 0, length: (url.absoluteString as NSString).length)
-            let regex = try! NSRegularExpression(pattern: "http[s]?:\\/\\/(www\\.)?dndbeyond.com\\/profile\\/([^\\/]*)\\/characters\\/[0-9]*$")
+            let regex = try! NSRegularExpression(pattern: "(http[s]?://(www\\.)?dndbeyond.com|ddbcache://)/profile/([^/]*)/characters/[0-9]*$")
             let matches = regex.numberOfMatches(in: url.absoluteString, options: [], range: range)
             if matches > 0 {
                 return true
@@ -850,6 +839,25 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
 
     }
     
+    func saveJSON() {
+        print("Attempting to save JSON")
+        if (self.webView != nil && self.webView.url != nil && checkIfCharacterSheet(wV: self.webView)) {
+            webView.evaluateJavaScript("JSON.stringify(jsonfile);", completionHandler: { (jsonfile, error) in
+                if error != nil {
+                    print ("Error extracting jsonfile: \(error?.localizedDescription)")
+                } else {
+                    do {
+                        let archiveURL = try! FileManager.default.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: true).appendingPathComponent((self.webView.url!.deletingPathExtension().lastPathComponent)).appendingPathExtension("json")
+                    let jsonfile = jsonfile as! String
+                        try jsonfile.write(to: archiveURL, atomically: false, encoding: .utf8)
+                    } catch let err {
+                        print("Could not save JSON: \(err)")
+                    }
+                }
+                })
+        }
+    }
+    
     func makeWebArchive(_ urls: Array<String>, _ activeUrl: URL) {
         DispatchQueue.global(qos: .background).async {
             DispatchQueue.main.sync {
@@ -864,14 +872,13 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
             let itemcount = Float(urls.count + 6)
             var itemNo = Float(0.0);
             DispatchQueue.main.sync { self._archivebar!.progress = itemNo/itemcount }
-            let archiveURL = try! FileManager.default.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: true).appendingPathComponent((activeUrl.pathComponents.last)!).appendingPathExtension("webarchive")
+            let archiveURL = try! FileManager.default.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: true).appendingPathComponent((activeUrl.pathComponents.last)!).appendingPathExtension("html")
+            let cacheDir = try! FileManager.default.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: true).appendingPathComponent("com.dndbeyond.resourcecache", isDirectory: true)
             var urls = urls
             var homebrew  = false
             var classIds = Array<NSNumber>.init()
             var sources = ""
             do {
-                //let boundry = "--mhtml-part-boundry--"
-                //var mhtml = "From: <my characters>\nSnapshot-Content-Location: \(activeUrl.absoluteString)\nSubject: Character\nMIME-Version: 1.0\nContent-Type: multipart/related; type=\"text/html\";boundary=\"\(boundry)\"\n\n"
                 let maincontents = try NSMutableString(contentsOf: activeUrl, encoding: String.Encoding.utf8.rawValue)
                 var headcontents = String("\n<meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge,chrome=1\">\n")
                 headcontents.append("<script type=\"text/javascript\">\n")
@@ -958,26 +965,80 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
                 window.removeEventListener('online', updateOnlineStatus, false);
                 """)
                 headcontents.append("\n</script>\n</head>")
-                let crossoriginrange = maincontents.range(of: " crossorigin ")
-                if crossoriginrange.location != NSNotFound {
-                    maincontents.replaceCharacters(in: crossoriginrange, with: " ")
-                }
-                let headclosingtag = maincontents.range(of: "</head>", options: .caseInsensitive)
-                if headclosingtag.location != NSNotFound {
-                    maincontents.replaceCharacters(in: headclosingtag, with: headcontents)
-                }
+                
+                //let crossoriginrange = maincontents.range(of: " crossorigin ")
+                //if crossoriginrange.location != NSNotFound {
+                //    maincontents.replaceCharacters(in: crossoriginrange, with: " ")
+                //}
+                maincontents.replaceOccurrences(of: " crossorigin ", with: " ", options: .caseInsensitive, range:NSMakeRange(0, maincontents.length))
+                
+                //let headclosingtag = maincontents.range(of: "</head>", options: .caseInsensitive)
+                //if headclosingtag.location != NSNotFound {
+                //    maincontents.replaceCharacters(in: headclosingtag, with: headcontents)
+                //}
+                maincontents.replaceOccurrences(of: "</head>", with: headcontents, options: .caseInsensitive, range:NSMakeRange(0, maincontents.length))
+                
+                maincontents.replaceOccurrences(
+                    of:     "https://media-waterdeep.cursecdn.com",
+                    with:   "ddbcache://",
+                    options:    .caseInsensitive,
+                    range:  NSMakeRange(0, maincontents.length)
+                )
+                maincontents.replaceOccurrences(
+                    of:     "https://media.dndbeyond.com",
+                    with:   "ddbcache://",
+                    options:    .caseInsensitive,
+                    range:  NSMakeRange(0, maincontents.length)
+                )
+                maincontents.replaceOccurrences(
+                    of:     "/Content/[0-9-]+",
+                    with:   "ddbcache:///Content",
+                    options:    .regularExpression,
+                    range:  NSMakeRange(0, maincontents.length)
+                )
+                maincontents.replaceOccurrences(
+                    of:     "/js/",
+                    with:   "ddbcache:///js/",
+                    options:    .caseInsensitive,
+                    range:  NSMakeRange(0, maincontents.length)
+                )
+                maincontents.replaceOccurrences(
+                    of:     "/api/custom-css",
+                    with:   "ddbcache:///custom.css",
+                    options:    .caseInsensitive,
+                    range:  NSMakeRange(0, maincontents.length)
+                )
+                maincontents.replaceOccurrences(
+                    of:     "ddbcache://ddbcache://",
+                    with:   "ddbcache://",
+                    options:    .caseInsensitive,
+                    range:  NSMakeRange(0, maincontents.length)
+                )
+                maincontents.replaceOccurrences(
+                    of:     "ddbcache:///ddbcache://",
+                    with:   "ddbcache://",
+                    options:    .caseInsensitive,
+                    range:  NSMakeRange(0, maincontents.length)
+                )
+
                 let fullcontents = maincontents.data(using: String.Encoding.utf8.rawValue)!
-                //mhtml.append("--\(boundry)\nContent-Type: text/html\nContent-ID: <mainframe@mhtml>\nContent-Transfer-Encoding: base64\nContent-Location: \(activeUrl.absoluteString)\n\n")
-                //mhtml.append(fullcontents.base64EncodedString())
-                let mainres = WebArchiveResource(url: activeUrl,data: fullcontents,mimeType: "text/html")
-                var webarchive = WebArchive(resource: mainres)
+                
+                //let mainres = WebArchiveResource(url: activeUrl,data: fullcontents,mimeType: "text/html")
+                //var webarchive = WebArchive(resource: mainres)
+                try fullcontents.write(to: archiveURL)
                 itemNo = 6.0
                 DispatchQueue.main.sync {
                     if self._archivebar != nil {
                         self._archivebar!.progress = itemNo/itemcount
                     }
                 }
-                for url in urls {
+                for singleUrl in urls {
+                    let url: String
+                    if singleUrl.contains("|") {
+                        url = singleUrl.replacingOccurrences(of: "|", with: "%7C")
+                    } else {
+                        url = singleUrl
+                    }
                     let range = NSRange(location: 0, length: (url as NSString).length)
                     let regex = try! NSRegularExpression(pattern: "^http[s]?:\\/\\/((www\\.|media\\.)?dndbeyond.com|fonts.googleapis.com|media-waterdeep.cursecdn.com|fonts.gstatic.com|apis.google.com|secure.gravatar.com)\\/")
                     let matches = regex.numberOfMatches(in: url, options: [], range: range)
@@ -1000,40 +1061,129 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
                         } else {
                             mimetype = "application/octet-stream"
                         }
-                        if let thisURL = URL(string: String(url).addingPercentEncoding(withAllowedCharacters:.urlQueryAllowed)!) {
+
+                        if let thisURL = URL(string:url) {
                             do {
-                                let cacheDir = try! FileManager.default.url(for: .cachesDirectory, in: .userDomainMask, appropriateFor: nil, create: true).appendingPathComponent("com.dndbeyond.resourcecache", isDirectory: true)
-                                let cachedURL = cacheDir.appendingPathComponent(String(url).addingPercentEncoding(withAllowedCharacters: .alphanumerics)!)
-                                var isDir : ObjCBool = false
                                 if !FileManager.default.fileExists(atPath: cacheDir.path) {
-                                    try FileManager.default.createDirectory(at: cacheDir, withIntermediateDirectories: false, attributes:nil)
+                                    try FileManager.default.createDirectory(atPath: cacheDir.path, withIntermediateDirectories: false, attributes:nil)
+                                }
+                                var cachedPath = NSMutableString(string: thisURL.path)
+                                cachedPath.replaceOccurrences(of: "/Content/[0-9-]+", with: "/Content", options: .regularExpression, range: NSMakeRange(0, cachedPath.length))
+                                cachedPath.replaceOccurrences(of: "/api/custom-css", with: "custom.css", options: [],range:  NSMakeRange(0, cachedPath.length))
+                                cachedPath.replaceOccurrences(of: "/content/syndication/tt.css", with: "/Content/syndication/tt.css", options: [],range:  NSMakeRange(0, cachedPath.length))
+
+                                let cachedURL: URL
+                                if url.contains("fonts.googleapis.com") {
+                                    let nsurl = url as NSString
+                                    let googleFont = nsurl.replacingOccurrences(of: ".*//fonts\\.googleapis\\.com/css\\?family=([A-z]*).*", with: "googlefont.$1.css", options: .regularExpression, range: NSMakeRange(0, nsurl.length))
+                                    cachedURL = cacheDir.appendingPathComponent(googleFont)
+                                } else if url.contains("/api/character/svg/download") {
+                                    let nsurl = url as NSString
+                                    let themedSVG = nsurl.replacingOccurrences(of: ".*/api/character/svg/download\\?themeId=([0-9]+)&name=([^)\"]*)", with: "/api/character/$2_$1.svg", options: .regularExpression, range:NSMakeRange(0, nsurl.length))
+                                    cachedURL = cacheDir.appendingPathComponent(themedSVG)
+                                } else {
+                                    cachedURL = cacheDir.appendingPathComponent(String(cachedPath))
+                                }
+                                if !FileManager.default.fileExists(atPath: cachedURL.deletingLastPathComponent().path) {
+                                    try FileManager.default.createDirectory(atPath: cachedURL.deletingLastPathComponent().path, withIntermediateDirectories: true, attributes:nil)
                                 }
                                 if FileManager.default.fileExists(atPath: cachedURL.path) {
-                                    let resContents: Data
                                     let attrib = try FileManager.default.attributesOfItem(atPath: cachedURL.path)
                                     let created = attrib[FileAttributeKey.creationDate] as! Date
-                                    if (created.timeIntervalSinceNow > 14400) {
+                                    if created.timeIntervalSinceNow < -186400 {
                                         try FileManager.default.removeItem(atPath: cachedURL.path)
-                                        resContents = try Data(contentsOf:thisURL)
-                                        if FileManager.default.fileExists(atPath: cacheDir.path, isDirectory:&isDir) && isDir.boolValue {
-                                            try resContents.write(to: cachedURL)
-                                        }
-                                    } else {
-                                        resContents = try Data(contentsOf:cachedURL)
                                     }
-                                    let resource = WebArchiveResource(url:thisURL,data: resContents,mimeType: mimetype)
-                                    //mhtml.append("--\(boundry)\nContent-Type: \(mimetype)\nContent-Transfer-Encoding: base64\nContent-Location: \(thisURL.absoluteString)\n\n")
-                                    //mhtml.append(resContents.base64EncodedString())
-                                    webarchive.addSubresource(resource)
-                                } else {
-                                    let resContents = try Data(contentsOf:thisURL)
-                                    if FileManager.default.fileExists(atPath: cacheDir.path, isDirectory:&isDir) && isDir.boolValue {
+                                }
+                                if !FileManager.default.fileExists(atPath: cachedURL.path) {
+                                    if mimetype == "text/css" {
+                                        var resContents = try String(contentsOf:thisURL)
+                                        if thisURL.absoluteString.contains("fonts.googleapis.com") {
+                                            let fontRegex = try! NSRegularExpression(pattern: "url\\(([^)]*)\\)")
+                                            for match in fontRegex.matches(in: resContents, options: [], range: NSMakeRange(0,(resContents as NSString).length)) {
+                                                let range = match.range(at: 1)
+                                                if range.location != NSNotFound {
+                                                    if let urlRange = Range(range, in: resContents) {
+                                                        let thisFont = String(resContents[urlRange])
+                                                        let thisFontURL = URL(string:thisFont)!
+                                                        let fontCacheURL = cacheDir.appendingPathComponent(thisFontURL.path)
+                                                        try FileManager.default.createDirectory(atPath: fontCacheURL.deletingLastPathComponent().path, withIntermediateDirectories: true, attributes:nil)
+                                                        if !FileManager.default.fileExists(atPath: fontCacheURL.path) {
+                                                            let fontRes = try Data(contentsOf:thisFontURL)
+                                                            try fontRes.write(to: fontCacheURL)
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        resContents = resContents.replacingOccurrences(
+                                            of:"https://media-waterdeep.cursecdn.com",
+                                            with: "ddbcache://")
+                                        
+                                        resContents = resContents.replacingOccurrences(
+                                            of:"https://media.dndbeyond.com",
+                                            with: "ddbcache://")
+                                        
+                                        resContents = resContents.replacingOccurrences(
+                                            of:"https://www.dndbeyond.com",
+                                            with: "ddbcache://")
+                                        
+                                        resContents = resContents.replacingOccurrences(
+                                            of:"https://fonts.gstatic.com",
+                                            with: "ddbcache://")
+                                        
+                                        resContents = resContents.replacingOccurrences(
+                                            of: "//fonts\\.googleapis\\.com/css\\?family=([A-z]*)[^\")]*",
+                                            with: "ddbcache:///googlefont.$1.css",
+                                            options: .regularExpression,
+                                            range: nil)
+                                        
+                                        resContents = resContents.replacingOccurrences(
+                                            of:"/api/character/svg/download\\?themeId=([0-9]+)&name=([^)\"]*)",
+                                            with: "ddbcache:///api/character/$2_$1.svg",
+                                            options: .regularExpression,
+                                            range: nil)
+
+                                        resContents = resContents.replacingOccurrences(
+                                            of:"/Content/[0-9-]+",
+                                            with: "ddbcache:///Content",
+                                            options: .regularExpression,
+                                            range: nil)
+
+                                        resContents = resContents.replacingOccurrences(
+                                            of:"/js/",
+                                            with: "ddbcache:///js/")
+                                        
+                                        resContents = resContents.replacingOccurrences(
+                                            of:"/api/custom-css",
+                                            with: "ddbcache:///custom.css")
+                                        resContents = resContents.replacingOccurrences(
+                                            of:     "ddbcache:///ddbcache://",
+                                            with:   "ddbcache://")
+                                        resContents = resContents.replacingOccurrences(
+                                            of:     "ddbcache://ddbcache://",
+                                            with:   "ddbcache://")
+                                        try resContents.write(to: cachedURL, atomically: false, encoding: .utf8)
+                                    /*
+                                    } else if mimetype == "text/javascript" && thisURL.absoluteString.contains("characterSheet.bundle") {
+                                        var resContents = try String(contentsOf:thisURL)
+                                        resContents = resContents.replacingOccurrences(
+                                        of:"\"+baseUrl+\"/api/character/svg/download?themeId=\"+theme.themeColorId+\"&name=\"+name+\"",
+                                            with: "ddbcache:///api/character/\"+name+\"_\"+theme.themeColorId+\".svg")
+                                        resContents = resContents.replacingOccurrences(
+                                        of:"/api/character/svg/download?themeId=\"+theme.themeColorId+\"&name=ability-score",
+                                            with: "ddbcache:///api/character/ability-score_\"+theme.themeColorId+\".svg")
+                                        try resContents.write(to: cachedURL, atomically: false, encoding: .utf8)
+                                        } else if mimetype == "text/javascript" && thisURL.absoluteString.contains("waterdeep") {
+                                        var resContents = try String(contentsOf:thisURL,encoding: .utf8)
+                                        resContents = resContents.replacingOccurrences(
+                                            of:"/content/syndication/tt.css",
+                                            with: "/Content/syndication/tt.css")
+                                        try resContents.write(to: cachedURL, atomically: false, encoding: .utf8)
+ */
+                                    } else {
+                                        let resContents = try Data(contentsOf:thisURL)
                                         try resContents.write(to: cachedURL)
                                     }
-                                    //mhtml.append("--\(boundry)\nContent-Type: \(mimetype)\nContent-Transfer-Encoding: base64\nContent-Location: \(thisURL.absoluteString)\n\n")
-                                    //mhtml.append(resContents.base64EncodedString())
-                                    let resource = WebArchiveResource(url:thisURL,data: resContents,mimeType: mimetype)
-                                    webarchive.addSubresource(resource)
                                 }
                                 DispatchQueue.main.sync {
                                     if self._archivebar != nil {
@@ -1049,6 +1199,7 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
                         }
                     }
                 }
+                /*
                 let encoder: PropertyListEncoder = {
                     let plistEncoder = PropertyListEncoder()
                     plistEncoder.outputFormat = .binary
@@ -1056,6 +1207,7 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
                 }()
                 let webArch = try encoder.encode(webarchive)
                 try webArch.write(to: archiveURL)
+                */
                 DispatchQueue.main.sync {
                     if self._archivebar != nil {
                         self._archivebar!.progress = itemNo/itemcount
@@ -1065,8 +1217,6 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
                         self._archivebar = nil
                     }
                 }
-                //mhtml.append("--\(boundry)--")
-                //try mhtml.write(to: archiveURL.appendingPathExtension(".mhtml"), atomically: true, encoding: String.Encoding.utf8)
             } catch let error { print(error) }
         }
     }
@@ -1158,14 +1308,14 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
 extension ViewController: WKNavigationDelegate {
     
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
-        print(error)
+        print("Could not load \(error)")
     }
     func webView(_ webView: WKWebView, didFailProvisionalNavigation: WKNavigation!, withError: Error) {
         let errNo = (withError as NSError).code
         let errorDesc = withError.localizedDescription
         if didFailProvisionalNavigation == _wknavigation {
             let urlString = _wkurl?.absoluteString ?? "unknown url"
-            if (_wkurl != nil) && urlString.hasSuffix(".webarchive") && errNo == EPERM {
+            if (_wkurl != nil) && urlString.hasSuffix(".html") && errNo == EPERM {
                 print("Loading webarchive: " + _wkurl!.absoluteString)
                 webView.loadFileURL(_wkurl!, allowingReadAccessTo: _wkurl!)
             } else {
@@ -1182,11 +1332,14 @@ extension ViewController: WKNavigationDelegate {
             } else {
                 myURL = _wkurl
             }
-            let archiveURL = try! FileManager.default.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: true).appendingPathComponent((myURL?.pathComponents.last)!).appendingPathExtension("webarchive")
+            let archiveURL = try! FileManager.default.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: true).appendingPathComponent((myURL?.pathComponents.last)!).appendingPathExtension("html")
             if FileManager.default.fileExists(atPath: archiveURL.path) {
                 guard let webArchive = try? Data(contentsOf: archiveURL) else { loadStaticPage(errorDesc); return }
                 webView.stopLoading()
-                webView.load(webArchive, mimeType: "application/x-webarchive", characterEncodingName: String.Encoding.utf8.description, baseURL: archiveURL)
+                print("Trying to load archive \(archiveURL)")
+                webView.loadHTMLString(String(data: webArchive, encoding: .utf8)!, baseURL: URL(string:"ddbcache:///"))
+                //webView.loadHTMLString(String(data: webArchive, encoding: .utf8)!, baseURL: archiveURL.deletingLastPathComponent())
+//                webView.load(webArchive, mimeType: "text/html", characterEncodingName: String.Encoding.utf8.description, baseURL: archiveURL.deletingLastPathComponent())
                 //webView.loadFileURL(archiveURL, allowingReadAccessTo: archiveURL)
             } else if (myURL?.pathComponents.last)! != "my-characters" {
                 let alertDialog = UIAlertController(title: "Character Not Available", message: "Sorry, but that character is not available for offline use.",preferredStyle: .alert)
@@ -1196,10 +1349,12 @@ extension ViewController: WKNavigationDelegate {
                 self.present(alertDialog, animated: true, completion: nil)
 
                 let myCharacters = URL(string:"https://www.dndbeyond.com/my-characters")
-                let archiveURL = try! FileManager.default.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: true).appendingPathComponent((myCharacters?.pathComponents.last)!).appendingPathExtension("webarchive")
+                let archiveURL = try! FileManager.default.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: true).appendingPathComponent((myCharacters?.pathComponents.last)!).appendingPathExtension("html")
                 if FileManager.default.fileExists(atPath: archiveURL.path) {
                     guard let webArchive = try? Data(contentsOf: archiveURL) else { loadStaticPage(errorDesc); return }
-                    webView.load(webArchive, mimeType: "application/x-webarchive", characterEncodingName: String.Encoding.utf8.description, baseURL: archiveURL)
+                    webView.loadHTMLString(String(data: webArchive, encoding: .utf8)!, baseURL: URL(string:"ddbcache:///"))
+                    //webView.loadHTMLString(String(data: webArchive, encoding: .utf8)!, baseURL: archiveURL.deletingLastPathComponent())
+                    //webView.load(webArchive, mimeType: "text/html", characterEncodingName: String.Encoding.utf8.description, baseURL:archiveURL.deletingLastPathComponent())
                 } else {
                     loadStaticPage(errorDesc)
                 }
@@ -1213,6 +1368,17 @@ extension ViewController: WKNavigationDelegate {
     func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
         _wknavigation = navigation
         _wkurl = webView.url
+        let url = webView.url
+        if url != nil && url!.scheme == "https" && reachability?.connection == .unavailable {
+            webView.stopLoading()
+            let request = URLRequest(url: URL(string:"ddbcache://" + url!.path)!)
+            webView.load(request)
+        } else if url != nil && url!.scheme == "ddbcache" && reachability?.connection != .unavailable {
+            webView.stopLoading()
+            let request = URLRequest(url: URL(string:"https://www.dndbeyond.com" + url!.path)!)
+            webView.load(request)
+        }
+
     }
     func webView(_ webView: WKWebView, decidePolicyFor navigationResponse: WKNavigationResponse, decisionHandler: @escaping (WKNavigationResponsePolicy) -> Void) {
         webView.configuration.websiteDataStore.httpCookieStore.getAllCookies( { cookies in
@@ -1240,7 +1406,7 @@ extension ViewController: WKScriptMessageHandler {
                     self.webView.evaluateJavaScript(imgjs) { result, error in
                         if error != nil {
                             print("Could not preload images: \(error!.localizedDescription)")
-                        } else if self.webView.url != nil && !(self.webView.url?.absoluteString.hasSuffix(".webarchive"))! {
+                        } else if self.webView.url != nil && !(self.webView.url?.absoluteString.hasSuffix(".html"))! {
                             /*
                             let archiveURL = try! FileManager.default.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: true).appendingPathComponent((self.webView.url!.pathComponents.last)!).appendingPathExtension("webarchive")
                             if FileManager.default.fileExists(atPath: archiveURL.path) && self.checkIfCharacterSheet(wV: self.webView) {
@@ -1270,7 +1436,7 @@ extension ViewController: WKScriptMessageHandler {
                         for call in calls {
                             let url = call.url ?? ""
                             let data = call.data ?? ""
-                            if url.hasPrefix("/api") && url != "/api/character/services" && !url.hasPrefix("/api/config/json") && !url.hasPrefix("/api/subscriptionlevel") {
+                            if url.hasPrefix("/api") && url != "/api/character/services" && !url.hasPrefix("/api/config/json") && !url.hasPrefix("/api/subscriptionlevel") && call.data != nil {
                                 if !self.sendAPICall(url: url, data: data) {
                                     self.queuedAPICalls.append(call)
                                 }
@@ -1282,10 +1448,9 @@ extension ViewController: WKScriptMessageHandler {
                 } else {
                     for call in calls {
                         let url = call.url ?? ""
-                        let data = call.data ?? ""
-                        if url.hasPrefix("/api") && url != "/api/character/services" && !url.hasPrefix("/api/config/json") && !url.hasPrefix("/api/subscriptionlevel") {
-                            print("Queueing \(url) -> \(data)")
+                        if url.hasPrefix("/api") && url != "/api/character/services" && !url.hasPrefix("/api/config/json") && !url.hasPrefix("/api/subscriptionlevel") && call.data != nil {
                             self.queuedAPICalls.append(call)
+                            saveJSON()
                         }
                     }
                     let defaults = UserDefaults.standard
