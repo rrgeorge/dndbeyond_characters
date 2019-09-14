@@ -209,7 +209,6 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
         if keyPath == "estimatedProgress" {
             if Float(webView.estimatedProgress) == 1 {
                 if !(self.webView.url?.absoluteString.hasSuffix(".html"))! && self.webView.url?.scheme != "ddbcache" {
-                    print ("Scheme: \(self.webView.url?.scheme)")
                     do {
                         let js = try String(contentsOfFile: Bundle.main.path(forResource: "prep", ofType: "js")!)
                         self.webView.evaluateJavaScript(js)
@@ -840,7 +839,6 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
     }
     
     func saveJSON() {
-        print("Attempting to save JSON")
         if (self.webView != nil && self.webView.url != nil && checkIfCharacterSheet(wV: self.webView)) {
             webView.evaluateJavaScript("JSON.stringify(jsonfile);", completionHandler: { (jsonfile, error) in
                 if error != nil {
@@ -886,6 +884,8 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
                 if activeUrl.pathComponents.last != "my-characters" {
                     let jsonURL = activeUrl.appendingPathComponent("/json")
                     let contents = try String(contentsOf:jsonURL)
+                    let jsonArchiveURL = try! FileManager.default.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: true).appendingPathComponent((activeUrl.pathComponents.last)!).appendingPathExtension("json")
+                    try contents.write(to: jsonArchiveURL, atomically: true, encoding: .utf8)
                     itemNo = 1.0
                     DispatchQueue.main.sync {
                         if self._archivebar != nil {
@@ -934,6 +934,12 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
                     jsonvalues.append(";\njsonequip = ")
                     let jsonequip = try String(contentsOf:(URL(string: "https://www.dndbeyond.com/api/equipment/list/json?" + apiQueryString)!))
                     jsonvalues.append(jsonequip)
+                    jsonvalues.append(";\njsonmonster = ")
+                    let jsonmonster = try String(contentsOf:(URL(string: "https://www.dndbeyond.com/api/monsters?" + apiQueryString)!))
+                    jsonvalues.append(jsonmonster)
+                    jsonvalues.append(";\njsonvehicle = ")
+                    let jsonvehicle = try String(contentsOf:(URL(string: "https://vehicle-service.dndbeyond.com/v2/vehicles/interactive")!))
+                    jsonvalues.append(jsonvehicle)
                     itemNo = 4.0
                     DispatchQueue.main.sync {
                         if self._archivebar != nil {
@@ -1251,7 +1257,6 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
                         self._cobaltAuth = "Bearer " + res.token
                         self._cobaltExpires = Date(timeIntervalSinceNow: TimeInterval(res.ttl))
                         let response = response as? HTTPURLResponse
-                        print("\(String(describing: response?.statusCode)) New Token retreived until \(String(describing: self._cobaltExpires)) -> \(String(describing: self._cobaltAuth))")
                         return sendAPICall(url: url,data: data)
                     } catch {
                         print("Error")
@@ -1261,7 +1266,6 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
             }
         } else {
             let apiURL = URL(string:"https://www.dndbeyond.com" + url)!
-            print(apiURL.absoluteString)
             do {
                 let dataJSON = try JSONSerialization.jsonObject(with: data.data(using: .utf8)!, options: []) as! [String: Any]
                 if let csrfToken = dataJSON["csrfToken"] as? String {
@@ -1279,13 +1283,11 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
                 apiRequest.addValue(_cobaltAuth!, forHTTPHeaderField: "Authorization")
                 apiRequest.addValue("application/json;charset=utf-8", forHTTPHeaderField: "Content-Type")
                 apiRequest.httpBody = data.data(using: String.Encoding.utf8)
-                let (retdata, response, error) = URLSession.shared.syncDataTask(urlrequest: apiRequest)
+                let (_, _, error) = URLSession.shared.syncDataTask(urlrequest: apiRequest)
                 if let error = error {
                     print("Synchronous task ended with error: \(error)")
                     return false
                 } else {
-                    let response = response as? HTTPURLResponse
-                    print ("Received (\(response?.statusCode ?? 0)): \(String(data: retdata!, encoding: .utf8) ?? "??")")
                     return true
                 }
             } catch let e {
@@ -1336,7 +1338,6 @@ extension ViewController: WKNavigationDelegate {
             if FileManager.default.fileExists(atPath: archiveURL.path) {
                 guard let webArchive = try? Data(contentsOf: archiveURL) else { loadStaticPage(errorDesc); return }
                 webView.stopLoading()
-                print("Trying to load archive \(archiveURL)")
                 webView.loadHTMLString(String(data: webArchive, encoding: .utf8)!, baseURL: URL(string:"ddbcache:///"))
                 //webView.loadHTMLString(String(data: webArchive, encoding: .utf8)!, baseURL: archiveURL.deletingLastPathComponent())
 //                webView.load(webArchive, mimeType: "text/html", characterEncodingName: String.Encoding.utf8.description, baseURL: archiveURL.deletingLastPathComponent())

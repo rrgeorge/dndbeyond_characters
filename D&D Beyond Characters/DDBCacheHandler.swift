@@ -72,8 +72,10 @@ class DDBCacheHandler: NSObject, WKURLSchemeHandler {
                                 let charJSONFile = try FileManager.default.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: false).appendingPathComponent(charJSON!)
                                 if FileManager.default.fileExists(atPath: charJSONFile.path){
                                     let newJsonFile = try String(contentsOf: charJSONFile)
-                                    let replacement = NSRegularExpression.escapedTemplate(for: "jsonfile = \(newJsonFile);")
+                                    let replacementUUID = UUID().uuidString
+                                    let replacement = NSRegularExpression.escapedTemplate(for: "jsonfile = \(replacementUUID);")
                                     let changed = fileString.replaceOccurrences(of: "(?m)^jsonfile = .*;$", with: replacement, options: .regularExpression, range: NSMakeRange(0, fileString.length))
+                                    fileString.replaceOccurrences(of: replacementUUID, with: newJsonFile, options: [], range: NSMakeRange(0, fileString.length))
                                     print ("Updating JSON \(changed)")
                                 }
                             }

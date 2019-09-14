@@ -17,7 +17,7 @@ var send_proto_orig = XMLHttpRequest.prototype.send;
 var send_proto_repl = function send(data) {
     var call = {};
     var dataObj = JSON.parse(data);
-    if (this._url.startsWith("/api/")) {
+    if (this._url.startsWith("/api/") || this._url.startsWith("https://vehicle-service.dndbeyond.com/v2/vehicles/interactive")) {
         Object.defineProperty(this,'readyState', { configurable: true, writable: true });
         Object.defineProperty(this,'status', { configurable: true, writable: true });
         Object.defineProperty(this,'statusText', { configurable: true, writable: true });
@@ -49,6 +49,12 @@ var send_proto_repl = function send(data) {
         } else if (this._url.startsWith("/api/equipment/list/json") && typeof jsonequip !== 'undefined') {
             this.response = jsonequip;
             this.responseText = jsonequip;
+        } else if (this._url.startsWith("/api/monsters") && typeof jsonmonster !== 'undefined') {
+            this.response = jsonmonster;
+            this.responseText = jsonmonster;
+        } else if (this._url.startsWith("https://vehicle-service.dndbeyond.com/v2/vehicles/interactive") && typeof jsonvehicle !== 'undefined') {
+            this.response = jsonvehicle;
+            this.responseText = jsonvehicle;
         } else {
             var respObj = {};
             if (dataObj && dataObj.characterId) {
@@ -104,7 +110,16 @@ var send_proto_repl = function send(data) {
                                 "conditions": character.conditions,
                                 "modifiers": character.modifiers
                             };
-                        break;
+                    break;
+                    case "currency":
+                        if (characterAPI[2] && characterAPI[2] == "set") {
+                            character.currencies.cp = dataObj.cp;
+                            character.currencies.sp = dataObj.sp;
+                            character.currencies.gp = dataObj.gp;
+                            character.currencies.ep = dataObj.ep;
+                            character.currencies.pp = dataObj.pp;
+                        }
+                    break;
                     case "damage":
                         if (characterAPI[2] && characterAPI[2] == "set") {
                             character.removedHitPoints = dataObj.removedHitPoints;
@@ -115,9 +130,90 @@ var send_proto_repl = function send(data) {
                             };
                         }
                     break;
+                    case "equipment":
+                        if (characterAPI[2] && characterAPI[2] == "equip") {
+                            idx = character.inventory.findIndex(x=>x.id==dataObj.id);
+                            if (idx > -1) {
+                                character.inventory[idx].equipped = true;
+                            }
+                        }
+                        if (characterAPI[2] && characterAPI[2] == "unequip") {
+                            idx = character.inventory.findIndex(x=>x.id==dataObj.id);
+                            if (idx > -1) {
+                                character.inventory[idx].equipped = false;
+                            }
+                        }
+                        if (characterAPI[2] && characterAPI[2] == "increment") {
+                            idx = character.inventory.findIndex(x=>x.id==dataObj.id);
+                            if (idx > -1) {
+                                character.inventory[idx].quantity += dataObj.quantity;
+                                if (character.inventory[idx].quantity < 0) {
+                                    character.inventory[idx].quantity = 0;
+                                }
+                            }
+                        }
+                        if (characterAPI[2] && characterAPI[2] == "decrement") {
+                            idx = character.inventory.findIndex(x=>x.id==dataObj.id);
+                            if (idx > -1) {
+                                character.inventory[idx].quantity -= dataObj.quantity;
+                                if (character.inventory[idx].quantity < 0) {
+                                    character.inventory[idx].quantity = 0;
+                                }
+                            }
+                        }
+                        if (characterAPI[2] && characterAPI[2] == "remove") {
+                            idx = character.inventory.findIndex(x=>x.id==dataObj.id);
+                            if (idx > -1) {
+                                character.inventory.splice(idx,1);
+                            }
+                        }
+                        if (characterAPI[2] && characterAPI[2] == "attune") {
+                            idx = character.inventory.findIndex(x=>x.id==dataObj.id);
+                            if (idx > -1) {
+                                character.inventory[idx].isAttuned = true;
+                            }
+                        }
+                        if (characterAPI[2] && characterAPI[2] == "unattune") {
+                            idx = character.inventory.findIndex(x=>x.id==dataObj.id);
+                            if (idx > -1) {
+                                character.inventory[idx].isAttuned = false;
+                            }
+                        }
+                        if (characterAPI[2] && characterAPI[2] == "add") {
+                            var maxID = 162858826;
+                            var added = [];
+                            character.inventory.forEach(function(item,i){if(item.id > maxID) maxID = item.id});
+                            maxID += 1;
+                            dataObj.equipment.forEach(function(item,i){
+                                idx = jsonequip.findIndex(x=>x.id==item.entityId&&x.entityTypeId==item.entityTypeId);
+                                if (idx > -1) {
+                                     added.push({
+                                          "id": maxID,
+                                          "entityTypeId": 1439493548,
+                                          "quantity": item.quantity,
+                                          "isAttuned": false,
+                                          "equipped": false,
+                                          "definition": JSON.parse(JSON.stringify(jsonequip[idx])),
+                                          "limitedUse": null
+                                     });
+                                }
+                            });
+                            character.inventory = character.inventory.concat(added);
+                            respObj.result = {
+                                 "addItems": added,
+                                 "spells": { "item": character.spells.item },
+                                 "modifiers": { "item": character.modifiers.item }
+                            }
+                        }
+                    break;
                     case "inspiration":
                         character.inspiration = dataObj.inspiration;
                         respObj.result = { "inspiration": dataObj.inspiration };
+                    break;
+                    case "lifestyle":
+                        if (characterAPI[2] && characterAPI[2] == "set") {
+                            character.lifestyleId = dataObj.lifestyleId;
+                        }
                     break;
                     case "limiteduse":
                         if (characterAPI[2] && characterAPI[2] == "set") {
