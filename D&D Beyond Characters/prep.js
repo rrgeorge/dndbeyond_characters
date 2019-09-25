@@ -17,7 +17,7 @@ var send_proto_orig = XMLHttpRequest.prototype.send;
 var send_proto_repl = function send(data) {
     var call = {};
     var dataObj = JSON.parse(data);
-    if (this._url.startsWith("/api/") || this._url.startsWith("https://vehicle-service.dndbeyond.com/v2/vehicles/interactive")) {
+    if (this._url.startsWith("/api/")) {
         Object.defineProperty(this,'readyState', { configurable: true, writable: true });
         Object.defineProperty(this,'status', { configurable: true, writable: true });
         Object.defineProperty(this,'statusText', { configurable: true, writable: true });
@@ -36,9 +36,6 @@ var send_proto_repl = function send(data) {
         if (this._url.startsWith("/api/config/json") && typeof jsonconfig !== 'undefined') {
             this.response = jsonconfig;
             this.responseText = jsonconfig;
-        } else if (this._url.startsWith("/api/character/services") && typeof jsoncharsvc !== 'undefined') {
-            this.response = jsoncharsvc;
-            this.responseText = jsoncharsvc;
         } else if (this._url.startsWith("/api/spells/list/json") && typeof jsonspells !== 'undefined') {
             var qregex = /(characterClassId)=?([^&]*)/;
             var qmatch = qregex.exec(this._url);
@@ -52,9 +49,6 @@ var send_proto_repl = function send(data) {
         } else if (this._url.startsWith("/api/monsters") && typeof jsonmonster !== 'undefined') {
             this.response = jsonmonster;
             this.responseText = jsonmonster;
-        } else if (this._url.startsWith("https://vehicle-service.dndbeyond.com/v2/vehicles/interactive") && typeof jsonvehicle !== 'undefined') {
-            this.response = jsonvehicle;
-            this.responseText = jsonvehicle;
         } else {
             var respObj = {};
             if (dataObj && dataObj.characterId) {
@@ -85,6 +79,32 @@ var send_proto_repl = function send(data) {
                         if (characterAPI[2] && characterAPI[2] == "set") {
                             character.bonusHitPoints = dataObj.bonusHitPoints;
                             respObj.result = { "miscHPBonus": dataObj.bonusHitPoints };
+                        }
+                    break;
+                    case "character-value":
+                        if (characterAPI[2] && characterAPI[2] == "set") {
+                            idx = character.characterValues.findIndex(x=>x.valueId == dataObj.valueId);
+                            if (idx > -1) {
+                                if (dataObj.value == null) {
+                                    character.characterValues.splice(idx,1);
+                                } else {
+                                    character.characterValues[idx].contextId = dataObj.contextId;
+                                    character.characterValues[idx].contextTypeId = dataObj.contextTypeId;
+                                    character.characterValues[idx].notes = dataObj.notes;
+                                    character.characterValues[idx].typeId = dataObj.typeId;
+                                    character.characterValues[idx].value = dataObj.value;
+                                    character.characterValues[idx].valueTypeId = dataObj.valueTypeId;
+                                }
+                            } else {
+                                character.characterValues.push({
+                                       "contextId": dataObj.contextId,
+                                       "contextTypeId": dataObj.contextTypeId,
+                                       "notes": dataObj.notes,
+                                       "typeId": dataObj.typeId,
+                                       "value": dataObj.value,
+                                       "valueTypeId": dataObj.valueTypeId
+                                       });
+                            }
                         }
                     break;
                     case "conditions":
@@ -118,6 +138,52 @@ var send_proto_repl = function send(data) {
                             character.currencies.gp = dataObj.gp;
                             character.currencies.ep = dataObj.ep;
                             character.currencies.pp = dataObj.pp;
+                        }
+                    case "creatures":
+                        if (characterAPI[2] && characterAPI[2] == "add") {
+                            var maxID = 2638523;
+                            var added = [];
+                            character.creatures.forEach(function(item,i){if(item.id > maxID) maxID = item.id});
+                            maxID += 1;
+                            idx = jsonmonster.findIndex(x=>x.id==dataObj.monsterId);
+                            if (idx > -1) {
+                                dataObj.names.forEach(function(name,i){
+                                 added.push({
+                                      "id": maxID,
+                                      "entityTypeId": 1295433283,
+                                      "name": name,
+                                      "description": null,
+                                      "isActive": false,
+                                      "removedHitPoints": 0,
+                                      "temporaryHitPoints": null,
+                                      "groupId": dataObj.groupId,
+                                      "definition": JSON.parse(JSON.stringify(jsonmonster[idx])),
+                                      "limitedUse": null
+                                 });
+                                 maxID += 1;
+                                });
+                            }
+                            character.creatures = character.creatures.concat(added);
+                            respObj.result = added;
+                        }
+                        if (characterAPI[2] && characterAPI[2] == "hit-points" && characterAPI[3] && characterAPI[3] == "set") {
+                            idx = character.creatures.findIndex(x=>x.id==dataObj.id);
+                            if (idx > -1) {
+                                character.creatures[idx].removedHitPoints = dataObj.removedHitPoints;
+                                character.creatures[idx].temporaryHitPoints = dataObj.temporaryHitPoints;
+                            }
+                        }
+                        if (characterAPI[2] && characterAPI[2] == "remove") {
+                            idx = character.creatures.findIndex(x=>x.id==dataObj.id);
+                            if (idx > -1) {
+                                character.creatures.splice(idx,1);
+                            }
+                        }
+                        if (characterAPI[2] && characterAPI[2] == "set") {
+                            idx = character.creatures.findIndex(x=>x.id==dataObj.id);
+                            if (idx > -1) {
+                                character.creatures[idx].name = dataObj.name
+                            }
                         }
                     break;
                     case "damage":
@@ -440,6 +506,74 @@ var send_proto_repl = function send(data) {
         this.onerror = null;
         this.readyState = 4;
         this.onreadystatechange(4);
+    } else if (document.getElementById("character-sheet-target") && this._url.startsWith(document.getElementById("character-sheet-target").getAttribute("data-character-service-base-url")) && typeof jsoncharsvc !== 'undefined'){
+        Object.defineProperty(this,'readyState', { configurable: true, writable: true, });
+        Object.defineProperty(this,'status', { configurable: true, writable: true, });
+        Object.defineProperty(this,'statusText', { configurable: true, writable: true, });
+        Object.defineProperty(this,'response', { configurable: true, writable: true, });
+        Object.defineProperty(this,'responseText', { configurable: true, writable: true, });
+        Object.defineProperty(this,'responseURL', { configurable: true, writable: true, });
+        Object.defineProperty(this,'responseType', { configurable: true, writable: true, });
+        this.status = 200;
+        this.statusText = "OK";
+        if (this._url.startsWith("http")) {
+            this.responseURL = this._url;
+        } else {
+            this.responseURL = document.location.protocol + "//" + document.location.host + this._url;
+        }
+        if (this._url.includes("vehicles/components?") && typeof jsonvehcomp !== 'undefined') {
+            this.response = jsonvehcomp;
+            this.responseText = jsonvehcomp;
+        } else if (this._url.includes("vehicles?") && typeof jsonvehsvc !== 'undefined') {
+            this.response = jsonvehsvc;
+            this.responseText = jsonvehsvc;
+        } else {
+            this.response = jsoncharsvc;
+            this.responseText = jsoncharsvc;
+        }
+        this.onerror = null;
+        this.readyState = 4;
+        this.onreadystatechange(4);
+    } else if (typeof jsoncharsvc !== 'undefined' && jsoncharsvc.definitions && jsoncharsvc.definitions.find(x=>x.type == "vehicle") && jsoncharsvc.definitions.find(x=>x.type == "vehicle").versions && jsoncharsvc.definitions.find(x=>x.type == "vehicle").versions.find(x=>this._url.startsWith(x.baseUrl+"/v"+x.version+"/")) && typeof jsonvehicle !== 'undefined') {
+        Object.defineProperty(this,'readyState', { configurable: true, writable: true, });
+        Object.defineProperty(this,'status', { configurable: true, writable: true, });
+        Object.defineProperty(this,'statusText', { configurable: true, writable: true, });
+        Object.defineProperty(this,'response', { configurable: true, writable: true, });
+        Object.defineProperty(this,'responseText', { configurable: true, writable: true, });
+        Object.defineProperty(this,'responseURL', { configurable: true, writable: true, });
+        Object.defineProperty(this,'responseType', { configurable: true, writable: true, });
+        this.status = 200;
+        this.statusText = "OK";
+        if (this._url.startsWith("http")) {
+            this.responseURL = this._url;
+        } else {
+            this.responseURL = document.location.protocol + "//" + document.location.host + this._url;
+        }
+        if (this._url.endsWith("/collection")) {
+            this.response = jsonvehicle;
+            this.responseText = jsonvehicle;
+        } else if (this._url.endsWith("/rule-data")) {
+            this.response = vehiclerules;
+            this.responseText = vehiclerules;
+        } else {
+            var vehicleID = this._url.substr(this._url.lastIndexOf("/")+1);
+            respObj = {};
+            idx = jsonvehicle.data.definitionData.findIndex(x=>x.id == vehicleID);
+            if (idx > -1) {
+                respObj.success = true;
+                respObj.message = "Success";
+                respObj.data = {
+                        "definitionData": jsonvehicle.data.definitionData[idx],
+                        "accessTypes": jsonvehicle.data.accessTypes[vehicleID]
+                }
+            } else {
+                respObj.statusCode = 404;
+                respObj.message = "Vehicle not found: " + vehicleID;
+            }
+        }
+        this.onerror = null;
+        this.readyState = 4;
+        this.onreadystatechange(4);
     }
     call.url = this._url;
     call.data = data;
@@ -447,6 +581,121 @@ var send_proto_repl = function send(data) {
     
     handleOfflineAPI(storedCalls);
 };
+var send_proto_repl2 = function send(data) {
+    if (this._url) {
+        if (typeof jsoncharsvc !== 'undefined' && jsoncharsvc.definitions && jsoncharsvc.definitions.find(x=>x.type == "vehicle") && jsoncharsvc.definitions.find(x=>x.type == "vehicle").versions && jsoncharsvc.definitions.find(x=>x.type == "vehicle").versions.find(x=>this._url.startsWith(x.baseUrl+"/v"+x.version+"/")) && typeof jsonvehicle !== 'undefined' && typeof vehiclerules !== 'undefined') {
+            Object.defineProperty(this,'readyState', { configurable: true, writable: true, });
+            Object.defineProperty(this,'status', { configurable: true, writable: true, });
+            Object.defineProperty(this,'statusText', { configurable: true, writable: true, });
+            Object.defineProperty(this,'response', { configurable: true, writable: true, });
+            Object.defineProperty(this,'responseText', { configurable: true, writable: true, });
+            Object.defineProperty(this,'responseURL', { configurable: true, writable: true, });
+            Object.defineProperty(this,'responseType', { configurable: true, writable: true, });
+            this.status = 200;
+            this.statusText = "OK";
+            if (this._url.startsWith("http")) {
+                this.responseURL = this._url;
+            } else {
+                this.responseURL = document.location.protocol + "//" + document.location.host + this._url;
+            }
+            if (this._url.endsWith("/collection")) {
+                this.response = jsonvehicle;
+                this.responseText = jsonvehicle;
+            } else if (this._url.endsWith("/rule-data")) {
+                this.response = vehiclerules;
+                this.responseText = vehiclerules;
+            } else {
+                var vehicleID = this._url.substr(this._url.lastIndexOf("/")+1);
+                respObj = {};
+                idx = jsonvehicle.data.definitionData.findIndex(x=>x.id == vehicleID);
+                if (idx > -1) {
+                    respObj.success = true;
+                    respObj.message = "Success";
+                    respObj.data = {
+                            "definitionData": jsonvehicle.data.definitionData[idx],
+                            "accessTypes": jsonvehicle.data.accessTypes[vehicleID]
+                    }
+                } else {
+                    respObj.statusCode = 404;
+                    respObj.message = "Vehicle not found: " + vehicleID;
+                }
+            }
+            this.onerror = null;
+            this.readyState = 4;
+            this.onreadystatechange(4);
+            return;
+        } else if (this._url.startsWith("/api/equipment/list/json") && typeof jsonequip !== 'undefined') {
+            Object.defineProperty(this,'readyState', { configurable: true, writable: true, });
+            Object.defineProperty(this,'status', { configurable: true, writable: true, });
+            Object.defineProperty(this,'statusText', { configurable: true, writable: true, });
+            Object.defineProperty(this,'response', { configurable: true, writable: true, });
+            Object.defineProperty(this,'responseText', { configurable: true, writable: true, });
+            Object.defineProperty(this,'responseURL', { configurable: true, writable: true, });
+            Object.defineProperty(this,'responseType', { configurable: true, writable: true, });
+            this.status = 200;
+            this.statusText = "OK";
+            if (this._url.startsWith("http")) {
+                this.responseURL = this._url;
+            } else {
+                this.responseURL = document.location.protocol + "//" + document.location.host + this._url;
+            }
+            this.response = jsonequip;
+            this.responseText = jsonequip;
+            this.onerror = null;
+            this.readyState = 4;
+            this.onreadystatechange(4);
+            return;
+        } else if (this._url.startsWith("/api/monsters") && typeof jsonmonster !== 'undefined') {
+            Object.defineProperty(this,'readyState', { configurable: true, writable: true, });
+            Object.defineProperty(this,'status', { configurable: true, writable: true, });
+            Object.defineProperty(this,'statusText', { configurable: true, writable: true, });
+            Object.defineProperty(this,'response', { configurable: true, writable: true, });
+            Object.defineProperty(this,'responseText', { configurable: true, writable: true, });
+            Object.defineProperty(this,'responseURL', { configurable: true, writable: true, });
+            Object.defineProperty(this,'responseType', { configurable: true, writable: true, });
+            this.status = 200;
+            this.statusText = "OK";
+            if (this._url.startsWith("http")) {
+                this.responseURL = this._url;
+            } else {
+                this.responseURL = document.location.protocol + "//" + document.location.host + this._url;
+            }
+            this.response = jsonmonster;
+            this.responseText = jsonmonster;
+            this.onerror = null;
+            this.readyState = 4;
+            this.onreadystatechange(4);
+            return;
+        } else if (this._url.startsWith("/api/spells/list/json") && typeof jsonspells !== 'undefined') {
+            var qregex = /(characterClassId)=?([^&]*)/;
+            var qmatch = qregex.exec(this._url);
+            if (qmatch && qmatch[2] && jsonspells[qmatch[2]]) {
+                Object.defineProperty(this,'readyState', { configurable: true, writable: true, });
+                Object.defineProperty(this,'status', { configurable: true, writable: true, });
+                Object.defineProperty(this,'statusText', { configurable: true, writable: true, });
+                Object.defineProperty(this,'response', { configurable: true, writable: true, });
+                Object.defineProperty(this,'responseText', { configurable: true, writable: true, });
+                Object.defineProperty(this,'responseURL', { configurable: true, writable: true, });
+                Object.defineProperty(this,'responseType', { configurable: true, writable: true, });
+                this.status = 200;
+                this.statusText = "OK";
+                if (this._url.startsWith("http")) {
+                    this.responseURL = this._url;
+                } else {
+                    this.responseURL = document.location.protocol + "//" + document.location.host + this._url;
+                }
+                this.response = jsonspells[qmatch[2]];
+                this.responseText = jsonspells[qmatch[2]];
+                this.onerror = null;
+                this.readyState = 4;
+                this.onreadystatechange(4);
+                return;
+            }
+        }
+    }
+    return send_proto_orig.apply(this,arguments)
+}
+
 var fetch_orig = window.fetch;
 var fetch_repl = function() {
     if(arguments[0].endsWith("cobalt-token")) {
@@ -463,12 +712,12 @@ var fetch_repl = function() {
         return fetch_orig.apply(this,arguments);
     }
 };
-
+                                                                
 function updateOnlineStatus() {
     if(navigator.onLine) {
         //        window.webkit.messageHandlers.captureCall.postMessage("Online")
-        window.XMLHttpRequest.prototype.open = open_proto_orig;
-        window.XMLHttpRequest.prototype.send = send_proto_orig;
+        window.XMLHttpRequest.prototype.open = open_proto_repl;
+        window.XMLHttpRequest.prototype.send = send_proto_repl2;
         window.fetch = fetch_orig;
         if (storedCalls.length > 0) {
             handleOfflineAPI(storedCalls);

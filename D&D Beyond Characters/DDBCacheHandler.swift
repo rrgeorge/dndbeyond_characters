@@ -12,6 +12,26 @@ import WebKit
 enum HandlerError: Error {
     case noIdeaWhatToDoWithThis
     case fileNotFound(fileName: String)
+    
+    var rawValue : Int {
+        get {
+            switch self {
+            case .noIdeaWhatToDoWithThis : return -1
+            case .fileNotFound(fileName: _) : return 404
+            }
+        }
+    }
+    
+    var localizedDescription: String {
+        get {
+            switch self {
+            case .noIdeaWhatToDoWithThis:
+                return "Unknown Error"
+            case .fileNotFound(fileName: _):
+                return "File not found"
+            }
+        }
+    }
 }
 
 class DDBCacheHandler: NSObject, WKURLSchemeHandler {
@@ -23,9 +43,12 @@ class DDBCacheHandler: NSObject, WKURLSchemeHandler {
         if let url = urlSchemeTask.request.url {
             let urlPath: String
             let charJSON: String?
-            if (url.pathComponents[1] == "profile" && url.pathComponents[3] == "characters") || url.lastPathComponent == "my-characters" {
+            if (url.pathComponents[1] == "profile" && url.pathComponents[3] == "characters") {
                 urlPath = url.lastPathComponent + ".html"
                 charJSON = url.lastPathComponent + ".json"
+            } else if url.lastPathComponent == "my-characters" {
+                urlPath = url.lastPathComponent + ".html"
+                charJSON = nil
             } else if url.path == "/content/syndication/tt.css" {
                 charJSON = nil
                 urlPath = "/Content/syndication/tt.css"
@@ -74,9 +97,8 @@ class DDBCacheHandler: NSObject, WKURLSchemeHandler {
                                     let newJsonFile = try String(contentsOf: charJSONFile)
                                     let replacementUUID = UUID().uuidString
                                     let replacement = NSRegularExpression.escapedTemplate(for: "jsonfile = \(replacementUUID);")
-                                    let changed = fileString.replaceOccurrences(of: "(?m)^jsonfile = .*;$", with: replacement, options: .regularExpression, range: NSMakeRange(0, fileString.length))
+                                    fileString.replaceOccurrences(of: "(?m)^jsonfile = .*;$", with: replacement, options: .regularExpression, range: NSMakeRange(0, fileString.length))
                                     fileString.replaceOccurrences(of: replacementUUID, with: newJsonFile, options: [], range: NSMakeRange(0, fileString.length))
-                                    print ("Updating JSON \(changed)")
                                 }
                             }
                             file = fileString.data(using: String.Encoding.utf8.rawValue)!
@@ -90,7 +112,7 @@ class DDBCacheHandler: NSObject, WKURLSchemeHandler {
                     urlSchemeTask.didReceive(file)
                     urlSchemeTask.didFinish()
                 } else {
-                    print ("Cannot find: \(fileURL.path)")
+                    //print ("Cannot find: \(fileURL.path)")
                     urlSchemeTask.didFailWithError(HandlerError.fileNotFound(fileName: url.path))
                 }
             } catch let error {
