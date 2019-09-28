@@ -148,7 +148,7 @@ var send_proto_repl = function send(data) {
                             idx = jsonmonster.findIndex(x=>x.id==dataObj.monsterId);
                             if (idx > -1) {
                                 dataObj.names.forEach(function(name,i){
-                                 added.push({
+                                let newCreature = {
                                       "id": maxID,
                                       "entityTypeId": 1295433283,
                                       "name": name,
@@ -159,12 +159,23 @@ var send_proto_repl = function send(data) {
                                       "groupId": dataObj.groupId,
                                       "definition": JSON.parse(JSON.stringify(jsonmonster[idx])),
                                       "limitedUse": null
-                                 });
+                                 };
+                                 if (typeof newCreature.definition.damageAdjustments === 'undefined' ) newCreature.definition.damageAdjustments = [];
+                                 if (typeof newCreature.definition.conditionImmunities === 'undefined' ) newCreature.definition.conditionImmunities = [];
+                                 if (typeof newCreature.definition.stats === 'undefined' ) newCreature.definition.stats = [];
+                                 if (typeof newCreature.definition.stats === 'undefined' ) newCreature.definition.stats = [];
+                                 if (typeof newCreature.definition.savingThrows === 'undefined' ) newCreature.definition.savingThrows = [];
+                                 if (typeof newCreature.definition.skills === 'undefined' ) newCreature.definition.skills = [];
+                                 if (typeof newCreature.definition.senses === 'undefined' ) newCreature.definition.senses = [];
+                                 if (typeof newCreature.definition.languages === 'undefined' ) newCreature.definition.languages = [];
+                                 added.push(newCreature);
                                  maxID += 1;
                                 });
                             }
                             character.creatures = character.creatures.concat(added);
+                            
                             respObj.result = added;
+                             
                         }
                         if (characterAPI[2] && characterAPI[2] == "hit-points" && characterAPI[3] && characterAPI[3] == "set") {
                             idx = character.creatures.findIndex(x=>x.id==dataObj.id);
@@ -467,6 +478,38 @@ var send_proto_repl = function send(data) {
                         }
                         break;
                         case "spells":
+                        if (characterAPI[2] && characterAPI[2] == "known" && characterAPI[3] && characterAPI[3] == "add") {
+                            //entityTypeId
+                            //id
+                            //spellId
+                            
+                            idx = jsonspells[dataObj.characterClassId].findIndex(x=>x.id==dataObj.id&&x.entityTypeId==dataObj.entityTypeId&&x.definition.id==dataObj.spellId);
+                            if(idx>-1) {
+                                respObj.id = dataObj.characterId;
+                                respObj.result = jsonspells[dataObj.characterClassId][idx];
+                                idx2 = character.classSpells.findIndex(x=>x.characterClassId==dataObj.characterClassId);
+                                if (idx2>-1) {
+                                    character.classSpells[idx2].spells.push(jsonspells[dataObj.characterClassId][idx]);
+                                }
+                            }
+                            
+                        }
+                        if (characterAPI[2] && characterAPI[2] == "known" && characterAPI[3] && characterAPI[3] == "remove") {
+                            idx = character.classSpells.findIndex(x=>x.characterClassId==dataObj.characterClassId);
+                            idx2 = character.classSpells[idx].spells.findIndex(x=>x.id==dataObj.id&&x.entityTypeId==dataObj.entityTypeId&&x.definition.id==dataObj.spellId)
+                            if (idx2>-1) {
+                                character.classSpells[idx1].spells.splice(idx2,1);
+                            }
+                        }
+                        if (characterAPI[2] && characterAPI[2] == "known" && characterAPI[3] && characterAPI[3].endsWith("prepare")) {
+                            idx = character.classSpells.findIndex(x=>x.characterClassId==dataObj.characterClassId);
+                            if (idx>-1) {
+                                idx2 = character.classSpells[idx].spells.findIndex(x=>x.id==dataObj.id&&x.entityTypeId==dataObj.entityTypeId&&x.definition.id==dataObj.spellId)
+                                if (idx2>-1) {
+                                    character.classSpells[idx1].spells[idx2].prepared=characterAPI[3].startsWith("prepare");
+                                }
+                            }
+                        }
                         if (characterAPI[2] && characterAPI[2] == "slot" && characterAPI[3] && characterAPI[3] == "use") {
                             idx = character.spellSlots.findIndex(x=>x.level==dataObj.level);
                             character.spellSlots[idx].used ++;
@@ -478,7 +521,6 @@ var send_proto_repl = function send(data) {
                             if (character.spellSlots[idx].used < 0) character.spellSlots[idx].used = 0;
                         }
                         break;
-
                 }
             }
             this.response = JSON.stringify(respObj);
@@ -693,7 +735,10 @@ var send_proto_repl2 = function send(data) {
             }
         }
     }
-    return send_proto_orig.apply(this,arguments)
+    if (this._url.startsWith("/api/character")) {
+        handleOfflineAPI([{"url": "json","data": ""}]);
+    }
+    return send_proto_orig.apply(this,arguments);
 }
 
 var fetch_orig = window.fetch;
@@ -818,15 +863,40 @@ var callback = function(mutationsList, observer) {
     }
     if (document.getElementsByClassName("ct-quick-nav--opened")[0]) {
         document.getElementsByClassName("ct-quick-nav--opened")[0].style.top = 0;
-    }
-    if (document.getElementsByClassName("ct-quick-nav--opened")[0]) {
-        document.getElementsByClassName("ct-quick-nav--opened")[0].style.top = 0;
+        var quicknavitems = document.getElementsByClassName("ct-quick-nav--opened")[0].getElementsByClassName('ct-quick-nav__menu-item');
+            if (quicknavitems.length>0 && !document.getElementById("backtolistquicknav")) {
+                var cloned = quicknavitems[quicknavitems.length-1].cloneNode(true);
+                cloned.firstChild.addEventListener("click", function(){
+                                          if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.navFunction) {
+                                            window.webkit.messageHandlers.navFunction.postMessage("GoHome");
+                                          } else if (AndroidApp && AndroidApp.navFunction) {
+                                            AndroidApp.navFunction("GoHome");
+                                          } else {
+                                            window.location='/my-characters';
+                                          }});
+                cloned.id = "backtolistquicknav";
+                for(i=0;i<quicknavitems.length;i++){
+                    var qnItem = quicknavitems[i];
+                    if (qnItem.firstChild.lastChild.innerText == "FEATURES & TRAITS") cloned.firstChild.firstChild.innerHTML = qnItem.firstChild.firstChild.innerHTML;
+                }
+                cloned.firstChild.lastChild.innerText = "Character List";
+                quicknavitems[0].parentNode.appendChild(cloned);
+            }
     }
     
     if (document.location.pathname == "/my-characters") {
         if (document.getElementById('footer')) {
 //            document.getElementById('footer').remove()
             document.getElementById('footer').style.display = "none";
+        }
+    }
+                                                                
+    var sidebar = document.getElementsByClassName("ct-sidebar--visible")[0];
+    if (sidebar && !navigator.onLine) {
+        for (i=0;i<sidebar.getElementsByClassName('ct-theme-button').length;i++) {
+            if (sidebar.getElementsByClassName('ct-theme-button')[i].firstChild.innerText == "ADD" || sidebar.getElementsByClassName('ct-theme-button')[i].firstChild.innerText.startsWith("ADD ")) {
+                sidebar.getElementsByClassName('ct-theme-button')[i].style.display="none";
+            }
         }
     }
 };
