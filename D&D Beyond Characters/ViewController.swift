@@ -996,6 +996,7 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
                                 }
                                 let jsoncontents = String(data: results!, encoding: charSet) ?? ""
                                 jsoncharsvc = jsoncontents
+                                jsonvalues.append("jsoncharsvc = \(jsoncharsvc);\n")
                             } catch {
                                 throw ArchiveError.NoCharacterSVC
                             }
@@ -1039,6 +1040,7 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
                                 let jsoncontents = String(data: results!, encoding: charSet) ?? ""
                                 
                                 jsonconfig = jsoncontents
+                                jsonvalues.append("jsonconfig = \(jsonconfig);\n")
                             } catch {
                                 throw ArchiveError.NoJSONCfg
                             }
@@ -1070,11 +1072,6 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
                         }
                         let apiQueryString = "characterServiceBaseUrl=\(charSvcBase)&username=\(self._ddbUser!)&characterId=\(charID!)&csrfToken=\(self._csrfToken!)&useHomebrew=\(homebrew)&activeSourceCategories=\(sources)"
                         urls.remove(at: 0)
-                        var jsonvalues = ""
-                        jsonvalues.append("\n")
-                        jsonvalues.append("jsonfile = \(contents);\n")
-                        jsonvalues.append("jsonconfig = \(jsonconfig);\n")
-                        jsonvalues.append("jsoncharsvc = \(jsoncharsvc);\n")
                         // Equipment Cache
                         if let jsonReqURL = URL(string: "https://www.dndbeyond.com/api/equipment/list/json?\(apiQueryString)") {
                            do {
