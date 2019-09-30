@@ -139,11 +139,12 @@ var send_proto_repl = function send(data) {
                             character.currencies.ep = dataObj.ep;
                             character.currencies.pp = dataObj.pp;
                         }
+		    break;
                     case "creatures":
                         if (characterAPI[2] && characterAPI[2] == "add") {
                             var maxID = 2638523;
                             var added = [];
-                            character.creatures.forEach(function(item,i){if(item.id > maxID) maxID = item.id});
+                            character.creatures.forEach(function(item,i){if(item.id > maxID) maxID = item.id;});
                             maxID += 1;
                             idx = jsonmonster.findIndex(x=>x.id==dataObj.monsterId);
                             if (idx > -1) {
@@ -193,7 +194,7 @@ var send_proto_repl = function send(data) {
                         if (characterAPI[2] && characterAPI[2] == "set") {
                             idx = character.creatures.findIndex(x=>x.id==dataObj.id);
                             if (idx > -1) {
-                                character.creatures[idx].name = dataObj.name
+                                character.creatures[idx].name = dataObj.name;
                             }
                         }
                     break;
@@ -257,9 +258,9 @@ var send_proto_repl = function send(data) {
                             }
                         }
                         if (characterAPI[2] && characterAPI[2] == "add") {
-                            var maxID = 162858826;
-                            var added = [];
-                            character.inventory.forEach(function(item,i){if(item.id > maxID) maxID = item.id});
+                            let maxID = 162858826;
+                            let added = [];
+                            character.inventory.forEach(function(item,i){if(item.id > maxID) maxID = item.id;});
                             maxID += 1;
                             dataObj.equipment.forEach(function(item,i){
                                 idx = jsonequip.findIndex(x=>x.id==item.entityId&&x.entityTypeId==item.entityTypeId);
@@ -280,7 +281,7 @@ var send_proto_repl = function send(data) {
                                  "addItems": added,
                                  "spells": { "item": character.spells.item },
                                  "modifiers": { "item": character.modifiers.item }
-                            }
+                            };
                         }
                     break;
                     case "inspiration":
@@ -496,7 +497,7 @@ var send_proto_repl = function send(data) {
                         }
                         if (characterAPI[2] && characterAPI[2] == "known" && characterAPI[3] && characterAPI[3] == "remove") {
                             idx = character.classSpells.findIndex(x=>x.characterClassId==dataObj.characterClassId);
-                            idx2 = character.classSpells[idx].spells.findIndex(x=>x.id==dataObj.id&&x.entityTypeId==dataObj.entityTypeId&&x.definition.id==dataObj.spellId)
+                            idx2 = character.classSpells[idx].spells.findIndex(x=>x.id==dataObj.id&&x.entityTypeId==dataObj.entityTypeId&&x.definition.id==dataObj.spellId);
                             if (idx2>-1) {
                                 character.classSpells[idx1].spells.splice(idx2,1);
                             }
@@ -504,7 +505,7 @@ var send_proto_repl = function send(data) {
                         if (characterAPI[2] && characterAPI[2] == "known" && characterAPI[3] && characterAPI[3].endsWith("prepare")) {
                             idx = character.classSpells.findIndex(x=>x.characterClassId==dataObj.characterClassId);
                             if (idx>-1) {
-                                idx2 = character.classSpells[idx].spells.findIndex(x=>x.id==dataObj.id&&x.entityTypeId==dataObj.entityTypeId&&x.definition.id==dataObj.spellId)
+                                idx2 = character.classSpells[idx].spells.findIndex(x=>x.id==dataObj.id&&x.entityTypeId==dataObj.entityTypeId&&x.definition.id==dataObj.spellId);
                                 if (idx2>-1) {
                                     character.classSpells[idx1].spells[idx2].prepared=characterAPI[3].startsWith("prepare");
                                 }
@@ -599,19 +600,21 @@ var send_proto_repl = function send(data) {
             this.responseText = vehiclerules;
         } else {
             var vehicleID = this._url.substr(this._url.lastIndexOf("/")+1);
-            respObj = {};
-            idx = jsonvehicle.data.definitionData.findIndex(x=>x.id == vehicleID);
+            let respObj = {};
+            let idx = jsonvehicle.data.definitionData.findIndex(x=>x.id == vehicleID);
             if (idx > -1) {
                 respObj.success = true;
                 respObj.message = "Success";
                 respObj.data = {
                         "definitionData": jsonvehicle.data.definitionData[idx],
                         "accessTypes": jsonvehicle.data.accessTypes[vehicleID]
-                }
+                };
             } else {
                 respObj.statusCode = 404;
                 respObj.message = "Vehicle not found: " + vehicleID;
             }
+	    this.response = JSON.stringify(respObj);
+            this.responseText = JSON.stringify(respObj);
         }
         this.onerror = null;
         this.readyState = 4;
@@ -656,7 +659,7 @@ var send_proto_repl2 = function send(data) {
                     respObj.data = {
                             "definitionData": jsonvehicle.data.definitionData[idx],
                             "accessTypes": jsonvehicle.data.accessTypes[vehicleID]
-                    }
+                    };
                 } else {
                     respObj.statusCode = 404;
                     respObj.message = "Vehicle not found: " + vehicleID;
@@ -739,7 +742,7 @@ var send_proto_repl2 = function send(data) {
         handleOfflineAPI([{"url": "json","data": ""}]);
     }
     return send_proto_orig.apply(this,arguments);
-}
+};
 
 var fetch_orig = window.fetch;
 var fetch_repl = function() {
@@ -768,6 +771,8 @@ function updateOnlineStatus() {
             handleOfflineAPI(storedCalls);
                 //storedCalls[i].req.send(storedCalls[i].data);
         }
+        if (document.getElementsByClassName('button')[0] && document.getElementsByClassName('button')[0].innerText == "CREATE A CHARACTER") document.getElementsByClassName('button')[0].style.display = "";
+        if (document.getElementsByClassName('button')[0] && document.getElementsByClassName('button')[0].innerText == "CREATE A CHARACTER") document.getElementsByClassName('button')[0].style.display = "";
         storedCalls = [];
     } else {
         storedCalls = [];
@@ -775,6 +780,8 @@ function updateOnlineStatus() {
         window.fetch = fetch_repl;
         window.XMLHttpRequest.prototype.open = open_proto_repl;
         window.XMLHttpRequest.prototype.send = send_proto_repl;
+//		if (document.getElementsByClassName('ddb-listing-filters-characters')[0]) document.getElementsByClassName('ddb-listing-filters-characters')[0].style.display = "none";
+        if (document.getElementsByClassName('button')[0] && document.getElementsByClassName('button')[0].innerText == "CREATE A CHARACTER") document.getElementsByClassName('button')[0].style.display = "none";
     }
 }
 window.addEventListener('offline', updateOnlineStatus, false);
@@ -875,7 +882,7 @@ var callback = function(mutationsList, observer) {
                                             window.location='/my-characters';
                                           }});
                 cloned.id = "backtolistquicknav";
-                for(i=0;i<quicknavitems.length;i++){
+                for(let i=0;i<quicknavitems.length;i++){
                     var qnItem = quicknavitems[i];
                     if (qnItem.firstChild.lastChild.innerText == "FEATURES & TRAITS") cloned.firstChild.firstChild.innerHTML = qnItem.firstChild.firstChild.innerHTML;
                 }
@@ -893,7 +900,7 @@ var callback = function(mutationsList, observer) {
                                                                 
     var sidebar = document.getElementsByClassName("ct-sidebar--visible")[0];
     if (sidebar && !navigator.onLine) {
-        for (i=0;i<sidebar.getElementsByClassName('ct-theme-button').length;i++) {
+        for (let i=0;i<sidebar.getElementsByClassName('ct-theme-button').length;i++) {
             if (sidebar.getElementsByClassName('ct-theme-button')[i].firstChild.innerText == "ADD" || sidebar.getElementsByClassName('ct-theme-button')[i].firstChild.innerText.startsWith("ADD ")) {
                 sidebar.getElementsByClassName('ct-theme-button')[i].style.display="none";
             }
@@ -904,4 +911,43 @@ callback.call();
 setTimeout(500,callback.call());
 var observer = new MutationObserver(callback);
 observer.observe(document, config);
+$( document ).ready(function(){
+if (document.getElementById('filter-name') && document.getElementById('filter-classes') && document.getElementById('filter-race') && document.getElementById('filter-level')) {
+    var livefilter = function(){
+        var filtername = document.getElementById('filter-name').value.toLowerCase();
+        var filterclasses = document.getElementById('filter-classes').value.toLowerCase();
+        var filterrace = document.getElementById('filter-race').value.toLowerCase();
+        var filterlevel = document.getElementById('filter-level').value.toLowerCase();
 
+        var cards = document.getElementsByClassName("ddb-campaigns-character-card");
+        for (let i=0;i<cards.length;i++){
+                let name = cards[i].getElementsByClassName("ddb-campaigns-character-card-header-upper-character-info-primary")[0].innerText.toLowerCase();
+                let subparts = cards[i].getElementsByClassName("ddb-campaigns-character-card-header-upper-character-info-secondary")[0].innerText.split(" | ");
+                let level = subparts[0].toLowerCase();
+                let race = subparts[1].toLowerCase();
+                let classes = subparts[2].toLowerCase();
+                if (name.includes(filtername) && level.includes(filterlevel) && race.includes(filterrace) && classes.includes(filterclasses)) {
+                    cards[i].style.display="";
+                } else {
+                    cards[i].style.display="none";
+                }
+        }
+    };
+    document.getElementById('filter-name').addEventListener('keyup',livefilter);
+    document.getElementById('filter-race').addEventListener('keyup',livefilter);
+    document.getElementById('filter-level').addEventListener('keyup',livefilter);
+    document.getElementById('filter-classes').addEventListener('keyup',livefilter);
+    let thisURL = new URL(document.location.href);
+    if (thisURL.searchParams.has("filter-name")) document.getElementById('filter-name').value = thisURL.searchParams.get("filter-name");
+    if (thisURL.searchParams.has("filter-classes")) document.getElementById('filter-classes').value = thisURL.searchParams.get("filter-classes");
+    if (thisURL.searchParams.has("filter-race")) document.getElementById('filter-race').value = thisURL.searchParams.get("filter-race");
+    if (thisURL.searchParams.has("filter-level")) document.getElementById('filter-level').value = thisURL.searchParams.get("filter-level");
+    livefilter();
+    var searchForm = document.getElementById("homebrew-creations-search-form");
+    if (searchForm) {
+        searchForm.action="javascript:void(0);";
+        $("#homebrew-creations-search-form").off('submit');
+        $("#homebrew-creations-search-form").on("submit",livefilter);
+    }
+}
+});
