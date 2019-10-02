@@ -927,9 +927,9 @@ if (document.getElementById('filter-name') && document.getElementById('filter-cl
                 let race = subparts[1].toLowerCase();
                 let classes = subparts[2].toLowerCase();
                 if (name.includes(filtername) && level.includes(filterlevel) && race.includes(filterrace) && classes.includes(filterclasses)) {
-                    cards[i].style.display="";
+                    cards[i].parentNode.style.display="";
                 } else {
-                    cards[i].style.display="none";
+                    cards[i].parentNode.style.display="none";
                 }
         }
     };

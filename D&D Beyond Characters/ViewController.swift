@@ -957,7 +957,7 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
                     jsonvalues.append("jsonfile = \(contents);\n")
                     if (urls.count > 0) {
                         let jsoncharsvc : String
-                        let charSvcUrl = urls.first(where: {$0.contains("services")})
+                        let charSvcUrl = urls.first(where: {$0.contains("/services")})
                         let charSvcBase : String
                         if charSvcUrl != nil, let jsonReqURL = URL(string: charSvcUrl!) {
                             do {
@@ -1013,7 +1013,7 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
                         
                         
                         let jsonconfig : String
-                        let jsonconfigUrl = urls.first(where: {$0.contains("api/config/json")})
+                        let jsonconfigUrl = urls.first(where: {$0.contains("/api/config/json")})
                         if jsonconfigUrl != nil, let jsonReqURL = URL(string: jsonconfigUrl!) {
                             do {
          // Get Character service JSON
@@ -1053,7 +1053,6 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
                                 self._archivebar!.progress = itemNo/itemcount
                             }
                         }
-                        
                         if let charJSON = try JSONSerialization.jsonObject(with: contents.data(using: .utf8)!, options:[] ) as? [String: Any] {
                             if let charObj = charJSON["character"] as? [String: Any] {
                                 let prefs = charObj["preferences"] as! [String: Any]
@@ -1147,7 +1146,6 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
 
                         var vehicleurl : String? = nil
                         var vehiclerulesurl : String? = nil
-                        
                         if let charJSONSvc = try JSONSerialization.jsonObject(with: jsoncharsvc.data(using: .utf8)!, options:[] ) as? [String: Any] {
                             if let defs = charJSONSvc["definitions"] as? [[String: Any]] {
                                 for def in defs {
