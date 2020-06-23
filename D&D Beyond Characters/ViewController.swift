@@ -9,6 +9,9 @@
 import UIKit
 import WebKit
 
+let ddbCharSvc = "https://character-service.dndbeyond.com/character"
+let ddbApiV = "v3"
+
 struct modifier : Codable {
     let skill:String?
     let stat:String?
@@ -24,6 +27,7 @@ struct modifier : Codable {
 struct apiCall : Codable {
     let url:String?
     let data:String?
+    let method:String?
 }
 
 class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIGestureRecognizerDelegate {
@@ -49,19 +53,6 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
         let webConfiguration = WKWebViewConfiguration()
         let webDataStore = WKWebsiteDataStore.default()
         
-        #if targetEnvironment(simulator)
-        print ("Loading in SIMULATOR. Setting preauthorized cookie.")
-        let cookie = HTTPCookie(properties: [
-            .domain: ".dndbeyond.com",
-            .path: "/",
-            .name: "CobaltSession",
-            .secure: true,
-            .expires: "Thu, 02 Aug 2029 05:37:39 GMT",
-            .value: "eyJhbGciOiJkaXIiLCJlbmMiOiJBMTI4Q0JDLUhTMjU2In0..1VKctb1d5ljv7SjHnCVR9w.oNxg88HyNKxy9z4zFiF0x6paelNwwqN0XKCfRB0knOVTmGpCeVfiXiZ2BgVorvLW.bqmbE8Gq02tRmx5pn45rnA",
-            ])
-            HTTPCookieStorage.shared.setCookie(cookie!)
-        webDataStore.httpCookieStore.setCookie(cookie!, completionHandler: nil)
-        #endif
         
         webConfiguration.websiteDataStore = webDataStore
         webConfiguration.dataDetectorTypes = []
@@ -122,10 +113,14 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
                     for call in self.queuedAPICalls {
                         let url = call.url ?? ""
                         let data = call.data ?? ""
-                        if url.hasPrefix("/api") && url != "/api/character/services" && !url.hasPrefix("/api/config/json") && !url.hasPrefix("/api/subscriptionlevel") && call.data != nil {
-                            if !self.sendAPICall(url: url, data: data) {
+                        let method = call.method ?? "PUT"
+                        if url.hasPrefix("https://character-service.dndbeyond.com/character/v3/character") && call.data != nil {
+                            print("Sending call \(call.method) to \(call.url) with \(call.data)")
+                            if !self.sendAPICall(url: url, data: data, method: method) {
                                 newAPIQueue.append(call)
                             }
+                        } else {
+                            print("Ignoring call \(call.method) to \(call.url) with \(call.data)")
                         }
                     }
                     self.queuedAPICalls.removeAll()
@@ -144,6 +139,30 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
         webView.load(myRequest)
     }
     
+    func loadDemo() {
+        let cookie = HTTPCookie(properties: [
+            .domain: ".dndbeyond.com",
+            .path: "/",
+            .name: "CobaltSession",
+            .secure: true,
+            .expires: "Thu, 02 Aug 2029 05:37:39 GMT",
+            .value: "eyJhbGciOiJkaXIiLCJlbmMiOiJBMTI4Q0JDLUhTMjU2In0..kxV3lAWS-3q8Kd4pVVYZgg.BVQc4Nr8u9l19tS2wqI8QEhZK7NUMc2LzGUOYkYTD3-y0rbsWhal6oXcgTIxat4i.-ooxqlApn20IgZQZnToZww",
+            ])
+            HTTPCookieStorage.shared.setCookie(cookie!)
+        let webDataStore = self.webView.configuration.websiteDataStore
+        webDataStore.httpCookieStore.getAllCookies( { cookies in
+            for cookie in cookies {
+                webDataStore.httpCookieStore.delete(cookie, completionHandler: nil)
+                }
+            })
+        webDataStore.httpCookieStore.setCookie(cookie!, completionHandler: {
+            self.webView.load(URLRequest(url: URL(string:"about:blank")!))
+            let myURL = URL(string:"https://www.dndbeyond.com/profile/rge_ddb/characters/26459429")
+            let myRequest = URLRequest(url: myURL!)
+            self.webView.stopLoading()
+            self.webView.load(myRequest)
+            } )
+    }
     override var prefersHomeIndicatorAutoHidden: Bool {
         return true
     }
@@ -184,6 +203,8 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
                         rollDialog.addAction(UIAlertAction(title: "Cancel", style: UIAlertAction.Style.default, handler: nil))
                         rollDialog.view.addSubview(UIView())
                         rollDialog.popoverPresentationController?.sourceView = self.view
+                        rollDialog.popoverPresentationController?.sourceRect = CGRect(x: self.view.bounds.midX, y: self.view.bounds.midY, width: 0, height: 0)
+                        rollDialog.popoverPresentationController?.permittedArrowDirections = []
                         self.present(rollDialog, animated: true, completion: nil)
                     } else {
                         self.rollDice()
@@ -194,9 +215,13 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
             let js = try String(contentsOfFile: Bundle.main.path(forResource: "diceparser", ofType: "js")!) + "\nJSON.stringify(mods);\n"
             webView.evaluateJavaScript(js) { mods,error in
                 do {
-                    let decoder = JSONDecoder()
-                    let json = (mods as! String).data(using: .utf8)!
-                    self.modifiers = try decoder.decode([modifier].self, from: json)
+                    if error != nil {
+                        print ("Could not parse dice rolls: \(String(describing: error?.localizedDescription))")
+                    } else {
+                        let decoder = JSONDecoder()
+                        let json = (mods as! String).data(using: .utf8)!
+                        self.modifiers = try decoder.decode([modifier].self, from: json)
+                    }
                     self.rollDice()
                 } catch {
                     print(error)
@@ -253,6 +278,37 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
                         }
                     } catch {
                         print ("MISSING ASSETS")
+                    }
+                }
+                if (self.webView.url?.absoluteString.hasSuffix("my-characters"))! || (self.webView.url?.absoluteString.hasSuffix("my-characters.html"))! {
+                    do {
+                        let docs = try FileManager.default.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+                        let files = try FileManager.default.contentsOfDirectory(atPath: docs.path)
+                        let resjs = """
+                        $( document ).ready(function(){
+                        console.log("Checking...");
+                        var offline=["\(files.joined(separator: "\",\""))"];
+                        var cards = document.getElementsByClassName("ddb-campaigns-character-card");
+                        for (let i=0;i<cards.length;i++){
+                            let url = cards[i].getElementsByClassName('ddb-campaigns-character-card-footer-links-item-view')[0].href.split('/');
+                            let item = url.pop();
+                            if(offline.find(x=>x==(item+".html"))) {
+                                let info = cards[i].getElementsByClassName('ddb-campaigns-character-card-header-upper-character-info-primary')[0];
+                                while(info.getElementsByTagName('IMG').length > 0) { info.getElementsByTagName('IMG')[0].remove(); };
+                                let img = new Image();
+                                img.src = "https://image.flaticon.com/icons/svg/109/109554.svg";
+                                img.height = 20;
+                                img.style.filter="invert(100%)";
+                                img.style.marginLeft="10px";
+                                info.appendChild(img);
+                            } else {
+                                console.log("No match: " + item);
+                            }
+                        }});
+                        """
+                        self.webView.evaluateJavaScript(resjs)
+                    } catch let e {
+                        print ("Could not determine offline characters: \(e)")
                     }
                 }
             }
@@ -394,11 +450,33 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
         rollDialog.addAction(UIAlertAction(title: "Cancel", style: UIAlertAction.Style.default, handler: nil))
         rollDialog.addAction(UIAlertAction(title: "Roll!", style: UIAlertAction.Style.default, handler: {action in
             let diceStr = rollDialog.textFields?.first?.text ?? "1"
+            let dieStr = rollDialog.textFields?.last?.text ?? "1"
+
+            if (diceStr == "rge" && dieStr == "ddb") || (diceStr == "000" && dieStr == "000") {
+                let demoDialog = UIAlertController(title: "Demo Account", message: "Enter Demo Code",preferredStyle: .alert)
+                demoDialog.addTextField() {textField in
+                    textField.placeholder = "Demo Code"
+                }
+                demoDialog.addAction(UIAlertAction(title: "Cancel", style: UIAlertAction.Style.default, handler: nil))
+                demoDialog.addAction(UIAlertAction(title: "Okay", style: UIAlertAction.Style.default, handler: {action in
+                    print("Demo?")
+                    let demoCode = demoDialog.textFields?.first?.text ?? ""
+                    if demoCode == "Konvih-dupdu9-sachih" {
+                        print("Yes")
+                        self.loadDemo()
+                    }
+                    demoDialog.dismiss(animated: true, completion: nil)
+                }))
+                demoDialog.popoverPresentationController?.sourceView = self.view
+                self.present(demoDialog, animated: true, completion: {demoDialog.textFields?.first?.becomeFirstResponder()})
+                return
+            }
             var dice = Int(diceStr) ?? 1
+            if dice < 1 { dice = 1 }
             if dice > 999 { dice = 999 }
             else if dice < 1 { dice = 1 }
-            let dieStr = rollDialog.textFields?.last?.text ?? "1"
             var die = Int(dieStr) ?? 1
+            if die < 1 { die = 1 }
             if die > 999 { die = 999 }
             else if dice < 1 { dice = 1 }
             self.rollSomeDice(roll: "Roll " + String(dice) + "d" + String(die), die: die,dice:dice)
@@ -748,6 +826,8 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
         rollDialog.addAction(UIAlertAction(title: "Cancel", style: UIAlertAction.Style.default, handler: nil))
         rollDialog.view.addSubview(UIView())
         rollDialog.popoverPresentationController?.sourceView = self.view
+        rollDialog.popoverPresentationController?.sourceRect = CGRect(x: self.view.bounds.midX, y: self.view.bounds.midY, width: 0, height: 0)
+        rollDialog.popoverPresentationController?.permittedArrowDirections = []
         self.present(rollDialog, animated: true, completion: nil)
     }
     
@@ -764,6 +844,8 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
         rollDialog.addAction(UIAlertAction(title: "Cancel", style: UIAlertAction.Style.default, handler: nil))
         rollDialog.view.addSubview(UIView())
         rollDialog.popoverPresentationController?.sourceView = self.view
+        rollDialog.popoverPresentationController?.sourceRect = CGRect(x: self.view.bounds.midX, y: self.view.bounds.midY, width: 0, height: 0)
+        rollDialog.popoverPresentationController?.permittedArrowDirections = []
         self.present(rollDialog, animated: true, completion: nil)
     }
     
@@ -858,7 +940,7 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
     
     func saveJSON() {
         if (self.webView != nil && self.webView.url != nil && checkIfCharacterSheet(wV: self.webView)) {
-            webView.evaluateJavaScript("JSON.stringify(jsonfile);", completionHandler: { (jsonfile, error) in
+            webView.evaluateJavaScript("JSON.stringify(jsonfiles[\"characterjson\"]);", completionHandler: { (jsonfile, error) in
                 if error != nil {
                     print ("Error extracting jsonfile: \(error!.localizedDescription)")
                 } else {
@@ -890,10 +972,8 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
             DispatchQueue.main.sync { self._archivebar!.progress = itemNo/itemcount }
             let archiveURL = try! FileManager.default.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: true).appendingPathComponent((activeUrl.pathComponents.last)!).appendingPathExtension("html")
             let cacheDir = try! FileManager.default.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: true).appendingPathComponent("com.dndbeyond.resourcecache", isDirectory: true)
-            var urls = urls
-            var homebrew  = false
-            var classIds = Array<NSNumber>.init()
-            var sources = ""
+            var sharingType = 2
+            var campaignId: Int?
             do {
                 enum ArchiveError : Error {
                     case NoCobaltToken
@@ -912,11 +992,11 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
                 headcontents.append("<script type=\"text/javascript\">\n")
                 
                 if activeUrl.pathComponents.last != "my-characters" {
-                    let charID = activeUrl.pathComponents.last
+                    let charID = activeUrl.pathComponents.last!
                     let contents: String
                     do  {
                         // Get Character JSON
-                        let jsonURL = activeUrl.appendingPathComponent("/json")
+                        let jsonURL = URL(string:String(format:"%@/%@/character/%@",ddbCharSvc,ddbApiV,charID))!
                         var jsonRequest = URLRequest(url: jsonURL)
                         jsonRequest.httpMethod = "GET"
                         jsonRequest.httpShouldHandleCookies = true
@@ -954,308 +1034,193 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
                     }
                     var jsonvalues = ""
                     jsonvalues.append("\n")
-                    jsonvalues.append("jsonfile = \(contents);\n")
+                    jsonvalues.append("jsonfiles = [];\n")
+                    jsonvalues.append("jsonfiles[\"characterjson\"] = \(contents);\n")
                     if (urls.count > 0) {
-                        let jsoncharsvc : String
-                        let charSvcUrl = urls.first(where: {$0.contains("/services")})
-                        let charSvcBase : String
-                        if charSvcUrl != nil, let jsonReqURL = URL(string: charSvcUrl!) {
-                            do {
-         // Get Character service JSON
-                                let components = URLComponents.init(url: jsonReqURL, resolvingAgainstBaseURL: false)
-                                if let characterServiceBaseUrl = components?.queryItems?.first(where: {$0.name == "characterServiceBaseUrl" }) {
-                                    charSvcBase = characterServiceBaseUrl.value?.addingPercentEncoding(withAllowedCharacters:.urlQueryAllowed) ?? ""
-                                } else {
-                                    charSvcBase = ""
-                                }
-                                if self._ddbUser == nil, let ddbuser = components?.queryItems?.first(where: {$0.name == "username" }) {
-                                    self._ddbUser = ddbuser.value
-                                }
-                                if self._csrfToken == nil, let csrfToken = components?.queryItems?.first(where: {$0.name == "csrfToken" }) {
-                                    self._csrfToken = csrfToken.value
-                                }
-                                var jsonRequest = URLRequest(url: jsonReqURL)
-                                jsonRequest.httpMethod = "GET"
-                                jsonRequest.httpShouldHandleCookies = true
-                                jsonRequest.addValue(self._cobaltAuth!, forHTTPHeaderField: "Authorization")
-                                let (results, response, error) = URLSession.shared.syncDataTask(urlrequest: jsonRequest)
-                                if let error = error {
-                                    print("Synchronous task ended with error: \(error)")
-                                    throw ArchiveError.NoCharacterSVC
-                                } else if results == nil {
-                                    print("Could not download Character JSON")
-                                    throw ArchiveError.NoCharacterSVC
-                                }
-                                let encoding = CFStringConvertIANACharSetNameToEncoding(response?.textEncodingName as CFString?)
-                                let charSet: String.Encoding
-                                if encoding != kCFStringEncodingInvalidId {
-                                    let senc = CFStringConvertEncodingToNSStringEncoding(encoding)
-                                    charSet = String.Encoding(rawValue: senc)
-                                } else {
-                                    charSet = String.Encoding.utf8
-                                }
-                                let jsoncontents = String(data: results!, encoding: charSet) ?? ""
-                                jsoncharsvc = jsoncontents
-                                jsonvalues.append("jsoncharsvc = \(jsoncharsvc);\n")
-                            } catch {
-                                throw ArchiveError.NoCharacterSVC
-                            }
-                        } else {
-                            throw ArchiveError.NoCharacterSVC
+                        struct DDBJSON {
+                            var name: String
+                            var path: String
                         }
-
-                        itemNo = 2.0
-                        DispatchQueue.main.sync {
-                            if self._archivebar != nil {
-                                self._archivebar!.progress = itemNo/itemcount
-                            }
-                        }
-                        
-                        
-                        let jsonconfig : String
-                        let jsonconfigUrl = urls.first(where: {$0.contains("/api/config/json")})
-                        if jsonconfigUrl != nil, let jsonReqURL = URL(string: jsonconfigUrl!) {
-                            do {
-         // Get Character service JSON
-                                var jsonRequest = URLRequest(url: jsonReqURL)
-                                jsonRequest.httpMethod = "GET"
-                                jsonRequest.httpShouldHandleCookies = true
-                                jsonRequest.addValue(self._cobaltAuth!, forHTTPHeaderField: "Authorization")
-                                let (results, response, error) = URLSession.shared.syncDataTask(urlrequest: jsonRequest)
-                                if let error = error {
-                                    print("Synchronous task ended with error: \(error)")
-                                    throw ArchiveError.NoCharacterSVC
-                                } else if results == nil {
-                                    print("Could not download Character JSON")
-                                    throw ArchiveError.NoCharacterSVC
-                                }
-                                let encoding = CFStringConvertIANACharSetNameToEncoding(response?.textEncodingName as CFString?)
-                                let charSet: String.Encoding
-                                if encoding != kCFStringEncodingInvalidId {
-                                    let senc = CFStringConvertEncodingToNSStringEncoding(encoding)
-                                    charSet = String.Encoding(rawValue: senc)
-                                } else {
-                                    charSet = String.Encoding.utf8
-                                }
-                                let jsoncontents = String(data: results!, encoding: charSet) ?? ""
-                                
-                                jsonconfig = jsoncontents
-                                jsonvalues.append("jsonconfig = \(jsonconfig);\n")
-                            } catch {
-                                throw ArchiveError.NoJSONCfg
-                            }
-                        } else {
-                            throw ArchiveError.NoJSONCfg
-                        }
-                        itemNo = 3.0
-                        DispatchQueue.main.sync {
-                            if self._archivebar != nil {
-                                self._archivebar!.progress = itemNo/itemcount
-                            }
-                        }
+                        var cachedJSONs: [DDBJSON] = [
+                            DDBJSON(name: "rule-data", path: String(format:"rule-data?v=%@", "3.2.1")),
+                            DDBJSON(name: "known-infusions", path: String(format:"known-infusions?characterId=%@", charID)),
+                            DDBJSON(name: "infusion/items", path: String(format:"infusion/items?characterId=%@", charID)),
+                            DDBJSON(name: "vehicles", path: String(format:"vehicles?characterId=%@", charID)),
+                            DDBJSON(name: "vehicle/components", path: String(format:"vehicle/components?characterId=%@", charID)),
+                        ]
                         if let charJSON = try JSONSerialization.jsonObject(with: contents.data(using: .utf8)!, options:[] ) as? [String: Any] {
-                            if let charObj = charJSON["character"] as? [String: Any] {
+                            if let charObj = charJSON["data"] as? [String: Any] {
                                 let prefs = charObj["preferences"] as! [String: Any]
-                                homebrew = prefs["useHomebrewContent"] as! Bool
-                                let actSrc = charObj["activeSourceCategories"] as! [Int]
-                                sources = actSrc.map(String.init).joined(separator: ",")
+                                sharingType = prefs["sharingType"] as! Int
+                                if let campaign = charObj["campaign"] as? [String: Any] {
+                                    campaignId = campaign["id"] as? Int
+                                }
+                                let backgroundId: Int?
+                                let background = charObj["background"] as! [String: Any]
+                                if let backDef = background["definition"] as? [String: Any] {
+                                    backgroundId = backDef["id"] as? Int
+                                } else {
+                                    backgroundId = nil
+                                }
                                 let classes = charObj["classes"] as! [Any]
                                 for oneClass in classes {
-                                    let classId = (oneClass as! [String: Any])["id"] as! NSNumber
                                     let classDef = (oneClass as! [String: Any])["definition"] as! [String: Any]
+                                    let classId = classDef["id"] as! Int
+                                    let classLevel = (oneClass as! [String: Any])["level"] as! Int
                                     if classDef["canCastSpells"] as! Bool {
-                                        classIds.append(classId)
+                                        if backgroundId != nil {
+                                            cachedJSONs.append(
+                                                DDBJSON(
+                                                    name:String(format:"spelllist_%d",classId),
+                                                    path:String(format:
+                                                        "game-data/spells?sharingSetting=%d&classId=%d&classLevel=%d&backgroundId=%d",
+                                                                sharingType, classId, classLevel, backgroundId!
+                                                ))
+                                            )
+                                        } else {
+                                            cachedJSONs.append(
+                                                DDBJSON(
+                                                    name:String(format:"spelllist_%d",classId),
+                                                    path:String(format:
+                                                        "game-data/spells?sharingSetting=%d&classId=%d&classLevel=%d",
+                                                                sharingType, classId, classLevel
+                                                ))
+                                            )
+                                        }
                                     }
                                 }
                             }
                         }
-                        let apiQueryString = "characterServiceBaseUrl=\(charSvcBase)&username=\(self._ddbUser!)&characterId=\(charID!)&csrfToken=\(self._csrfToken!)&useHomebrew=\(homebrew)&activeSourceCategories=\(sources)"
-                        urls.remove(at: 0)
-                        // Equipment Cache
-                        if let jsonReqURL = URL(string: "https://www.dndbeyond.com/api/equipment/list/json?\(apiQueryString)") {
-                           do {
-        // Get Character service JSON
-                               var jsonRequest = URLRequest(url: jsonReqURL)
-                               jsonRequest.httpMethod = "GET"
-                               jsonRequest.httpShouldHandleCookies = true
-                               jsonRequest.addValue(self._cobaltAuth!, forHTTPHeaderField: "Authorization")
-                               let (results, response, error) = URLSession.shared.syncDataTask(urlrequest: jsonRequest)
-                               if let error = error {
-                                   print("Synchronous task ended with error: \(error)")
-                                   throw ArchiveError.NoCharacterSVC
-                               } else if results == nil {
-                                   print("Could not download Character JSON")
-                                   throw ArchiveError.NoCharacterSVC
-                               }
-                               let encoding = CFStringConvertIANACharSetNameToEncoding(response?.textEncodingName as CFString?)
-                               let charSet: String.Encoding
-                               if encoding != kCFStringEncodingInvalidId {
-                                   let senc = CFStringConvertEncodingToNSStringEncoding(encoding)
-                                   charSet = String.Encoding(rawValue: senc)
-                               } else {
-                                   charSet = String.Encoding.utf8
-                               }
-                               let jsoncontents = String(data: results!, encoding: charSet) ?? ""
-                                jsonvalues.append("jsonequip = \(jsoncontents);\n")
-                           } catch let e {
-                               print ("Could not cache jsonequip: \(e)")
-                           }
-                        }
-                        itemNo = 4.0
-                        DispatchQueue.main.sync {
-                            if self._archivebar != nil {
-                                self._archivebar!.progress = itemNo/itemcount
-                            }
-                        }
-                        // Monster Cache
-                        if let jsonReqURL = URL(string: "https://www.dndbeyond.com/api/monsters?\(apiQueryString)") {
-                           do {
-        // Get Character service JSON
-                               var jsonRequest = URLRequest(url: jsonReqURL)
-                               jsonRequest.httpMethod = "GET"
-                               jsonRequest.httpShouldHandleCookies = true
-                               jsonRequest.addValue(self._cobaltAuth!, forHTTPHeaderField: "Authorization")
-                               let (results, response, error) = URLSession.shared.syncDataTask(urlrequest: jsonRequest)
-                               if let error = error {
-                                   print("Synchronous task ended with error: \(error)")
-                                   throw ArchiveError.NoCharacterSVC
-                               } else if results == nil {
-                                   print("Could not download Character JSON")
-                                   throw ArchiveError.NoCharacterSVC
-                               }
-                               let encoding = CFStringConvertIANACharSetNameToEncoding(response?.textEncodingName as CFString?)
-                               let charSet: String.Encoding
-                               if encoding != kCFStringEncodingInvalidId {
-                                   let senc = CFStringConvertEncodingToNSStringEncoding(encoding)
-                                   charSet = String.Encoding(rawValue: senc)
-                               } else {
-                                   charSet = String.Encoding.utf8
-                               }
-                               let jsoncontents = String(data: results!, encoding: charSet) ?? ""
-                                jsonvalues.append("jsonmonster = \(jsoncontents);\n")
-                           } catch let e {
-                               print ("Could not cache jsonequip: \(e)")
-                           }
-                        }
-                        itemNo = 5.0
-                        DispatchQueue.main.sync {
-                            if self._archivebar != nil {
-                                self._archivebar!.progress = itemNo/itemcount
-                            }
+                        
+                        if campaignId != nil {
+                            cachedJSONs.append(
+                                DDBJSON(name: "game-data/items", path: String(format:"game-data/items?campaignId=%d&sharingSetting=%d",campaignId!,sharingType))
+                                )
+                            cachedJSONs.append(
+                                DDBJSON(name: "game-data/monsters", path: String(format:"game-data/monsters?campaignId=%d&sharingSetting=%d",campaignId!,sharingType))
+                            )
+                        } else {
+                            cachedJSONs.append(
+                                DDBJSON(name: "game-data/items", path: String(format:"game-data/items?sharingSetting=%d",sharingType))
+                            )
+                            cachedJSONs.append(
+                                DDBJSON(name: "game-data/monsters", path: String(format:"game-data/monsters?sharingSetting=%d",sharingType))
+                            )
                         }
 
-                        var vehicleurl : String? = nil
-                        var vehiclerulesurl : String? = nil
-                        if let charJSONSvc = try JSONSerialization.jsonObject(with: jsoncharsvc.data(using: .utf8)!, options:[] ) as? [String: Any] {
-                            if let defs = charJSONSvc["definitions"] as? [[String: Any]] {
-                                for def in defs {
-                                    if let type = def["type"] as? String, type == "vehicle", let versions = def["versions"] as? [[String: Any]] {
-                                        for ver in versions {
-                                            if let v = ver["version"] as? Int, let url = ver["baseUrl"] as? String, let types = ver["types"] as? [[String: Any]] {
-                                                for type in types {
-                                                    if let requestType = type["requestType"] as? String, let path = type["path"] as? String, requestType == "all" {
-                                                        vehicleurl = "\(url)/v\(v)/\(path)"
+                        struct vehiclequery : Codable {
+                            var campaignId: Int?
+                            var ids: [String]?
+                            var sharingSetting: Int?
+                        }
+                        var vehQuery = vehiclequery.init()
+                        for thisJSON in cachedJSONs {
+                            if let jsonReqURL = URL(string:String(format:"%@/%@/%@",ddbCharSvc,ddbApiV,thisJSON.path)) {
+                               do {
+                                   var jsonRequest = URLRequest(url: jsonReqURL)
+                                   jsonRequest.httpMethod = "GET"
+                                   jsonRequest.httpShouldHandleCookies = true
+                                   jsonRequest.addValue(self._cobaltAuth!, forHTTPHeaderField: "Authorization")
+                                   let (results, response, error) = URLSession.shared.syncDataTask(urlrequest: jsonRequest)
+                                   if let error = error {
+                                       print("Synchronous task ended with error: \(error)")
+                                       throw ArchiveError.NoCharacterSVC
+                                   } else if results == nil {
+                                       print("Could not download Character JSON")
+                                       throw ArchiveError.NoCharacterSVC
+                                   }
+                                   let encoding = CFStringConvertIANACharSetNameToEncoding(response?.textEncodingName as CFString?)
+                                   let charSet: String.Encoding
+                                   if encoding != kCFStringEncodingInvalidId {
+                                       let senc = CFStringConvertEncodingToNSStringEncoding(encoding)
+                                       charSet = String.Encoding(rawValue: senc)
+                                   } else {
+                                       charSet = String.Encoding.utf8
+                                   }
+                                   let jsoncontents = String(data: results!, encoding: charSet) ?? ""
+                                    jsonvalues.append("jsonfiles[\"\(thisJSON.name)\"] = \(jsoncontents);\n")
+                                if thisJSON.name == "vehicles" {
+                                    print("Getting vehicle IDs")
+                                    vehQuery.campaignId = campaignId
+                                    vehQuery.sharingSetting = sharingType
+                                    vehQuery.ids = []
+                                    if let vehJSON = try JSONSerialization.jsonObject(with: results!, options:[] ) as? [String: Any] {
+                                        if let vehData = vehJSON["data"] as? [Any] {
+                                            for oneVeh in vehData {
+                                                if let defKey = (oneVeh as! [String: Any])["definitionKey"] as? String {
+                                                    if defKey.hasPrefix("vehicle:") {
+                                                        let index = defKey.index(defKey.startIndex, offsetBy: 8)
+                                                        let vehId = String(defKey.suffix(from: index))
+                                                        if !vehQuery.ids!.contains(vehId) {
+                                                            vehQuery.ids?.append(vehId)
+                                                        }
                                                     }
                                                 }
                                             }
                                         }
                                     }
                                 }
+                               } catch let e {
+                                   print ("Could not cache \(thisJSON.name): \(e)")
+                               }
                             }
-                            if let rules = charJSONSvc["rules"] as? [[String: Any]] {
-                                for rule in rules {
-                                    if let type = rule["type"] as? String, type == "vehicle", let url = rule["url"] as? String {
-                                        vehiclerulesurl = url
-                                    }
+                            itemNo += 1
+                            DispatchQueue.main.sync {
+                                if self._archivebar != nil {
+                                    self._archivebar!.progress = itemNo/itemcount
                                 }
                             }
                         }
-                        
-                        // Vehicle Cache
-                        let charVehUrl = urls.first(where: {$0.contains("vehicles?")})
-                        if charVehUrl != nil, let jsonReqURL = URL(string: charVehUrl!) {
-                            do {
-         // Get Character vehicle service JSON
-                                var jsonRequest = URLRequest(url: jsonReqURL)
-                                jsonRequest.httpMethod = "GET"
-                                jsonRequest.httpShouldHandleCookies = true
-                                jsonRequest.addValue(self._cobaltAuth!, forHTTPHeaderField: "Authorization")
-                                let (results, response, error) = URLSession.shared.syncDataTask(urlrequest: jsonRequest)
-                                if let error = error {
-                                    print("Synchronous task ended with error: \(error)")
-                                    throw ArchiveError.NoCharacterSVC
-                                } else if results == nil {
-                                    print("Could not download Character JSON")
-                                    throw ArchiveError.NoCharacterSVC
-                                }
-                                let encoding = CFStringConvertIANACharSetNameToEncoding(response?.textEncodingName as CFString?)
-                                let charSet: String.Encoding
-                                if encoding != kCFStringEncodingInvalidId {
-                                    let senc = CFStringConvertEncodingToNSStringEncoding(encoding)
-                                    charSet = String.Encoding(rawValue: senc)
-                                } else {
-                                    charSet = String.Encoding.utf8
-                                }
-                                let jsoncontents = String(data: results!, encoding: charSet) ?? ""
-                                jsonvalues.append("jsonvehsvc = \(jsoncontents);\n")
-                            } catch {
-                                throw ArchiveError.NoCharacterSVC
+                    
+                    let otherUrls = [
+                        "https://dice-service.dndbeyond.com/diceuserconfig/v1/get",
+                        "https://gamedata-service.dndbeyond.com/vehicles/v3/rule-data?v=3.2.1",
+                    ]
+                    
+                    for thisJSON in otherUrls {
+                            if let jsonReqURL = URL(string:thisJSON) {
+                               do {
+                                   var jsonRequest = URLRequest(url: jsonReqURL)
+                                   jsonRequest.httpMethod = "GET"
+                                   jsonRequest.httpShouldHandleCookies = true
+                                   jsonRequest.addValue(self._cobaltAuth!, forHTTPHeaderField: "Authorization")
+                                   let (results, response, error) = URLSession.shared.syncDataTask(urlrequest: jsonRequest)
+                                   if let error = error {
+                                       print("Synchronous task ended with error: \(error)")
+                                       throw ArchiveError.NoCharacterSVC
+                                   } else if results == nil {
+                                       print("Could not download Character JSON")
+                                       throw ArchiveError.NoCharacterSVC
+                                   }
+                                   let encoding = CFStringConvertIANACharSetNameToEncoding(response?.textEncodingName as CFString?)
+                                   let charSet: String.Encoding
+                                   if encoding != kCFStringEncodingInvalidId {
+                                       let senc = CFStringConvertEncodingToNSStringEncoding(encoding)
+                                       charSet = String.Encoding(rawValue: senc)
+                                   } else {
+                                       charSet = String.Encoding.utf8
+                                   }
+                                   let jsoncontents = String(data: results!, encoding: charSet) ?? ""
+                                    jsonvalues.append("jsonfiles[\"\(thisJSON)\"] = \(jsoncontents);\n")
+                               } catch let e {
+                                   print ("Could not cache \(thisJSON): \(e)")
+                               }
                             }
-                        } else {
-                            throw ArchiveError.NoCharacterSVC
-                        }
-                        itemNo = 6.0
-                        DispatchQueue.main.sync {
-                            if self._archivebar != nil {
-                                self._archivebar!.progress = itemNo/itemcount
-                            }
-                        }
-
-                        let charVehCompUrl = urls.first(where: {$0.contains("vehicles/components?")})
-                        if charVehCompUrl != nil, let jsonReqURL = URL(string: charVehCompUrl!) {
-                            do {
-         // Get Character vehicle service JSON
-                                var jsonRequest = URLRequest(url: jsonReqURL)
-                                jsonRequest.httpMethod = "GET"
-                                jsonRequest.httpShouldHandleCookies = true
-                                jsonRequest.addValue(self._cobaltAuth!, forHTTPHeaderField: "Authorization")
-                                let (results, response, error) = URLSession.shared.syncDataTask(urlrequest: jsonRequest)
-                                if let error = error {
-                                    print("Synchronous task ended with error: \(error)")
-                                    throw ArchiveError.NoCharacterSVC
-                                } else if results == nil {
-                                    print("Could not download Character JSON")
-                                    throw ArchiveError.NoCharacterSVC
+                            itemNo += 1
+                            DispatchQueue.main.sync {
+                                if self._archivebar != nil {
+                                    self._archivebar!.progress = itemNo/itemcount
                                 }
-                                let encoding = CFStringConvertIANACharSetNameToEncoding(response?.textEncodingName as CFString?)
-                                let charSet: String.Encoding
-                                if encoding != kCFStringEncodingInvalidId {
-                                    let senc = CFStringConvertEncodingToNSStringEncoding(encoding)
-                                    charSet = String.Encoding(rawValue: senc)
-                                } else {
-                                    charSet = String.Encoding.utf8
-                                }
-                                let jsoncontents = String(data: results!, encoding: charSet) ?? ""
-                                jsonvalues.append("jsonvehcomp = \(jsoncontents);\n")
-                            } catch {
-                                throw ArchiveError.NoCharacterSVC
-                            }
-                        } else {
-                            throw ArchiveError.NoCharacterSVC
-                        }
-                        itemNo = 7.0
-                        DispatchQueue.main.sync {
-                            if self._archivebar != nil {
-                                self._archivebar!.progress = itemNo/itemcount
                             }
                         }
-                        if vehicleurl != nil, let jsonReqURL = URL(string: vehicleurl!) {
+                        if vehQuery.ids != nil, let jsonReqURL = URL(string:"https://gamedata-service.dndbeyond.com/vehicle/v4/collection") {
                            do {
-        // Get Character service JSON
                                var jsonRequest = URLRequest(url: jsonReqURL)
-                               jsonRequest.httpMethod = "GET"
+                               jsonRequest.httpMethod = "POST"
                                jsonRequest.httpShouldHandleCookies = true
                                jsonRequest.addValue(self._cobaltAuth!, forHTTPHeaderField: "Authorization")
+                               jsonRequest.addValue("application/json;charset=utf-8", forHTTPHeaderField: "Content-Type")
+                               jsonRequest.httpBody = try JSONEncoder().encode(vehQuery)
                                let (results, response, error) = URLSession.shared.syncDataTask(urlrequest: jsonRequest)
                                if let error = error {
                                    print("Synchronous task ended with error: \(error)")
@@ -1273,110 +1238,60 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
                                    charSet = String.Encoding.utf8
                                }
                                let jsoncontents = String(data: results!, encoding: charSet) ?? ""
-                                jsonvalues.append("jsonvehicle = \(jsoncontents);\n")
+                               jsonvalues.append("jsonfiles[\"\(jsonReqURL.absoluteString)\"] = \(jsoncontents);\n")
                            } catch let e {
-                               print ("Could not cache jsonvehicle: \(e)")
+                               print ("Could not cache /vehicle/v4/collection: \(e)")
                            }
                         }
-                        itemNo = 8.0
+                        itemNo += 1
                         DispatchQueue.main.sync {
                             if self._archivebar != nil {
                                 self._archivebar!.progress = itemNo/itemcount
                             }
                         }
-
-                        if vehiclerulesurl != nil, let jsonReqURL = URL(string: vehiclerulesurl!) {
-                           do {
-        // Get Character service JSON
-                               var jsonRequest = URLRequest(url: jsonReqURL)
-                               jsonRequest.httpMethod = "GET"
-                               jsonRequest.httpShouldHandleCookies = true
-                               jsonRequest.addValue(self._cobaltAuth!, forHTTPHeaderField: "Authorization")
-                               let (results, response, error) = URLSession.shared.syncDataTask(urlrequest: jsonRequest)
-                               if let error = error {
-                                   print("Synchronous task ended with error: \(error)")
-                                   throw ArchiveError.NoCharacterSVC
-                               } else if results == nil {
-                                   print("Could not download Character JSON")
-                                   throw ArchiveError.NoCharacterSVC
-                               }
-                               let encoding = CFStringConvertIANACharSetNameToEncoding(response?.textEncodingName as CFString?)
-                               let charSet: String.Encoding
-                               if encoding != kCFStringEncodingInvalidId {
-                                   let senc = CFStringConvertEncodingToNSStringEncoding(encoding)
-                                   charSet = String.Encoding(rawValue: senc)
-                               } else {
-                                   charSet = String.Encoding.utf8
-                               }
-                               let jsoncontents = String(data: results!, encoding: charSet) ?? ""
-                                jsonvalues.append("vehiclerules = \(jsoncontents);\n")
-                           } catch let e {
-                               print ("Could not cache vehiclerules: \(e)")
+                    if let jsonReqURL = URL(string:"https://www.dndbeyond.com/api/subscriptionlevel") {
+                       do {
+                           var jsonRequest = URLRequest(url: jsonReqURL)
+                           jsonRequest.httpMethod = "POST"
+                           jsonRequest.httpShouldHandleCookies = true
+                           jsonRequest.addValue(self._cobaltAuth!, forHTTPHeaderField: "Authorization")
+                           let (results, response, error) = URLSession.shared.syncDataTask(urlrequest: jsonRequest)
+                           if let error = error {
+                               print("Synchronous task ended with error: \(error)")
+                               throw ArchiveError.NoCharacterSVC
+                           } else if results == nil {
+                               print("Could not download Character JSON")
+                               throw ArchiveError.NoCharacterSVC
                            }
-                        }
-                        itemNo = 9.0
-                        DispatchQueue.main.sync {
-                            if self._archivebar != nil {
-                                self._archivebar!.progress = itemNo/itemcount
-                            }
-                        }
-
-                        if classIds.count > 0 {
-                            jsonvalues.append("jsonspells = [];\n")
-                            var classNo = Float(0.0);
-                            for classId in classIds {
-                                if let jsonReqURL = URL(string: "https://www.dndbeyond.com/api/spells/list/json?\(apiQueryString)&characterClassId=\(classId)") {
-                                    do {
-                // Get Character service JSON
-                                       var jsonRequest = URLRequest(url: jsonReqURL)
-                                       jsonRequest.httpMethod = "GET"
-                                       jsonRequest.httpShouldHandleCookies = true
-                                       jsonRequest.addValue(self._cobaltAuth!, forHTTPHeaderField: "Authorization")
-                                       let (results, response, error) = URLSession.shared.syncDataTask(urlrequest: jsonRequest)
-                                       if let error = error {
-                                           print("Synchronous task ended with error: \(error)")
-                                           throw ArchiveError.NoCharacterSVC
-                                       } else if results == nil {
-                                           print("Could not download Character JSON")
-                                           throw ArchiveError.NoCharacterSVC
-                                       }
-                                       let encoding = CFStringConvertIANACharSetNameToEncoding(response?.textEncodingName as CFString?)
-                                       let charSet: String.Encoding
-                                       if encoding != kCFStringEncodingInvalidId {
-                                           let senc = CFStringConvertEncodingToNSStringEncoding(encoding)
-                                           charSet = String.Encoding(rawValue: senc)
-                                       } else {
-                                           charSet = String.Encoding.utf8
-                                       }
-                                       let jsoncontents = String(data: results!, encoding: charSet) ?? ""
-                                        jsonvalues.append("jsonspells[\"\(classId)\"] = \(jsoncontents);\n")
-                                        
-                                        classNo += 1
-                                        let spellProgress = Float(5.0/Float(classIds.count)) + classNo
-                                        itemNo = 10.0 + spellProgress
-                                        DispatchQueue.main.sync {
-                                            if self._archivebar != nil {
-                                                self._archivebar!.progress = itemNo/itemcount
-                                            }
-                                            self.webView.evaluateJavaScript(jsonvalues)
-                                        }
-
-                                    } catch let e {
-                                       print ("Could not cache jsonspells[\(classId)]: \(e)")
-                                    }
-                                }
-                            }
-                        }
+                           let encoding = CFStringConvertIANACharSetNameToEncoding(response?.textEncodingName as CFString?)
+                           let charSet: String.Encoding
+                           if encoding != kCFStringEncodingInvalidId {
+                               let senc = CFStringConvertEncodingToNSStringEncoding(encoding)
+                               charSet = String.Encoding(rawValue: senc)
+                           } else {
+                               charSet = String.Encoding.utf8
+                           }
+                           let jsoncontents = String(data: results!, encoding: charSet) ?? ""
+                            jsonvalues.append("jsonfiles[\"/api/subscriptionlevel\"] = \(jsoncontents);\n")
+                       } catch let e {
+                           print ("Could not cache /api/subscriptionlevel: \(e)")
+                       }
                     }
-                    jsonvalues.append("\n\n")
-                    itemNo = 10.0
+                    itemNo += 1
                     DispatchQueue.main.sync {
                         if self._archivebar != nil {
                             self._archivebar!.progress = itemNo/itemcount
                         }
-                        self.webView.evaluateJavaScript(jsonvalues)
                     }
                     headcontents.append(jsonvalues)
+                    DispatchQueue.main.sync {
+                            if self._archivebar != nil {
+                                self._archivebar!.progress = itemNo/itemcount
+                            }
+                            print("Loading json cache")
+                            self.webView.evaluateJavaScript(jsonvalues + "\nconsole.log(\"Loading json cache\")\n")
+                        }
+                    }
                 }
                 let jsprep = try String(contentsOf:Bundle.main.url(forResource: "prep", withExtension: "js")!)
                 headcontents.append(jsprep)
@@ -1412,7 +1327,7 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
                 )
                 maincontents.replaceOccurrences(
                     of:     "/Content/[0-9-]+",
-                    with:   "ddbcache:///Content",
+                    with:   "ddbcache:///content",
                     options:    .regularExpression,
                     range:  NSMakeRange(0, maincontents.length)
                 )
@@ -1470,10 +1385,10 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
                             mimetype = "image/jpeg"
                         } else if url.hasSuffix(".png") {
                             mimetype = "image/png"
-                        } else if url.hasSuffix(".js") || url.contains("jquery") || url.contains("cobalt") || url.contains("waterdeep") {
-                            mimetype = "text/javascript"
                         } else if url.hasSuffix(".css") || url.contains("css") {
                             mimetype = "text/css"
+                        } else if url.hasSuffix(".js") || url.contains("jquery") || url.contains("cobalt") || url.contains("waterdeep") {
+                            mimetype = "text/javascript"
                         } else if url.hasSuffix(".json") || url.contains("json") {
                             mimetype = "application/json"
                         } else if url.hasSuffix(".html") || url.hasSuffix(".htm") {
@@ -1487,11 +1402,9 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
                                 if !FileManager.default.fileExists(atPath: cacheDir.path) {
                                     try FileManager.default.createDirectory(atPath: cacheDir.path, withIntermediateDirectories: false, attributes:nil)
                                 }
-                                let cachedPath = NSMutableString(string: thisURL.path)
-                                cachedPath.replaceOccurrences(of: "/Content/[0-9-]+", with: "/Content", options: .regularExpression, range: NSMakeRange(0, cachedPath.length))
+                                let cachedPath = NSMutableString(string: thisURL.path.lowercased())
+                                cachedPath.replaceOccurrences(of: "/[Cc]ontent(/[0-9-]+)?", with: "/content", options: .regularExpression, range: NSMakeRange(0, cachedPath.length))
                                 cachedPath.replaceOccurrences(of: "/api/custom-css", with: "custom.css", options: [],range:  NSMakeRange(0, cachedPath.length))
-                                cachedPath.replaceOccurrences(of: "/content/syndication/tt.css", with: "/Content/syndication/tt.css", options: [],range:  NSMakeRange(0, cachedPath.length))
-
                                 let cachedURL: URL
                                 if url.contains("fonts.googleapis.com") {
                                     let nsurl = url as NSString
@@ -1499,10 +1412,10 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
                                     cachedURL = cacheDir.appendingPathComponent(googleFont)
                                 } else if url.contains("/api/character/svg/download") {
                                     let nsurl = url as NSString
-                                    let themedSVG = nsurl.replacingOccurrences(of: ".*/api/character/svg/download\\?themeId=([0-9]+)&name=([^)\"]*)", with: "/api/character/$2_$1.svg", options: .regularExpression, range:NSMakeRange(0, nsurl.length))
+                                    let themedSVG = nsurl.replacingOccurrences(of: ".*/api/character/svg/download\\?themeId=([0-9]+)&name=([^)\"]*)", with: "/api/character/$2_$1.svg", options: .regularExpression, range:NSMakeRange(0, nsurl.length)).lowercased()
                                     cachedURL = cacheDir.appendingPathComponent(themedSVG)
                                 } else {
-                                    cachedURL = cacheDir.appendingPathComponent(String(cachedPath))
+                                    cachedURL = cacheDir.appendingPathComponent(String(cachedPath).lowercased())
                                 }
                                 if !FileManager.default.fileExists(atPath: cachedURL.deletingLastPathComponent().path) {
                                     try FileManager.default.createDirectory(atPath: cachedURL.deletingLastPathComponent().path, withIntermediateDirectories: true, attributes:nil)
@@ -1510,31 +1423,37 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
                                 if FileManager.default.fileExists(atPath: cachedURL.path) {
                                     let attrib = try FileManager.default.attributesOfItem(atPath: cachedURL.path)
                                     let created = attrib[FileAttributeKey.creationDate] as! Date
-                                    if created.timeIntervalSinceNow < -186400 {
+                                    if created.timeIntervalSinceNow < -2592000 {
                                         try FileManager.default.removeItem(atPath: cachedURL.path)
                                     }
                                 }
                                 if !FileManager.default.fileExists(atPath: cachedURL.path) {
+                                    print("Caching \(thisURL.absoluteString) type: \(mimetype)")
                                     if mimetype == "text/css" {
+                                        print("Processing css file: \(thisURL.absoluteString)")
                                         var resContents = try String(contentsOf:thisURL)
-                                        if thisURL.absoluteString.contains("fonts.googleapis.com") {
-                                            let fontRegex = try! NSRegularExpression(pattern: "url\\(([^)]*)\\)")
+                                        //if thisURL.absoluteString.contains("fonts.googleapis.com") {
+                                            let fontRegex = try! NSRegularExpression(pattern: "url\\(((http[s]?:)?/?/([^)]+))\\)")
                                             for match in fontRegex.matches(in: resContents, options: [], range: NSMakeRange(0,(resContents as NSString).length)) {
+                                                print("Need to cache font:")
                                                 let range = match.range(at: 1)
                                                 if range.location != NSNotFound {
                                                     if let urlRange = Range(range, in: resContents) {
                                                         let thisFont = String(resContents[urlRange])
-                                                        let thisFontURL = URL(string:thisFont)!
-                                                        let fontCacheURL = cacheDir.appendingPathComponent(thisFontURL.path)
-                                                        try FileManager.default.createDirectory(atPath: fontCacheURL.deletingLastPathComponent().path, withIntermediateDirectories: true, attributes:nil)
-                                                        if !FileManager.default.fileExists(atPath: fontCacheURL.path) {
-                                                            let fontRes = try Data(contentsOf:thisFontURL)
-                                                            try fontRes.write(to: fontCacheURL)
+                                                        print("\(thisFont)")
+                                                        if let thisFontURL = URL(string:thisFont) {
+                                                            let fontCacheURL = cacheDir.appendingPathComponent(thisFontURL.path.lowercased())
+                                                            try FileManager.default.createDirectory(atPath: fontCacheURL.deletingLastPathComponent().path, withIntermediateDirectories: true, attributes:nil)
+                                                            if !FileManager.default.fileExists(atPath: fontCacheURL.path) {
+                                                                print("Caching: \(thisFontURL) to \(fontCacheURL)")
+                                                                let fontRes = try Data(contentsOf:thisFontURL)
+                                                                try fontRes.write(to: fontCacheURL)
+                                                            }
                                                         }
                                                     }
                                                 }
                                             }
-                                        }
+                                        //}
                                         resContents = resContents.replacingOccurrences(
                                             of:"https://media-waterdeep.cursecdn.com",
                                             with: "ddbcache://")
@@ -1562,17 +1481,14 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
                                             with: "ddbcache:///api/character/$2_$1.svg",
                                             options: .regularExpression,
                                             range: nil)
-
                                         resContents = resContents.replacingOccurrences(
-                                            of:"/Content/[0-9-]+",
-                                            with: "ddbcache:///Content",
+                                            of:"/[Cc]ontent(/[0-9-]+)?",
+                                            with: "ddbcache:///content",
                                             options: .regularExpression,
                                             range: nil)
-
                                         resContents = resContents.replacingOccurrences(
                                             of:"/js/",
                                             with: "ddbcache:///js/")
-                                        
                                         resContents = resContents.replacingOccurrences(
                                             of:"/api/custom-css",
                                             with: "ddbcache:///custom.css")
@@ -1681,7 +1597,7 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
                         //let response = response as? HTTPURLResponse
                         return self._cobaltAuth
                     } catch {
-                        print("Error")
+                        print("Error getting cobalt auth")
                         return nil
                     }
                 } else {
@@ -1694,19 +1610,15 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
     }
     
     
-    func sendAPICall(url: String,data: String) -> Bool {
+    func sendAPICall(url: String,data: String,method: String = "POST") -> Bool {
         if self._cobaltAuth == nil || self._cobaltExpires == nil || self._cobaltExpires!.timeIntervalSinceNow < TimeInterval(10.00) {
-            /*
-             Get Token:
-             curl 'https://auth-service.dndbeyond.com/v1/cobalt-token'
-             -H 'Cookie: CobaltSession=eyJhbGciOiJkaXIiLCJlbmMiOiJBMTI4Q0JDLUhTMjU2In0..1VKctb1d5ljv7SjHnCVR9w.oNxg88HyNKxy9z4zFiF0x6paelNwwqN0XKCfRB0knOVTmGpCeVfiXiZ2BgVorvLW.bqmbE8Gq02tRmx5pn45rnA;' --data ''
-             */
             let emptyData = ("").data(using: String.Encoding.utf8)
             let authURL = URL(string:"https://auth-service.dndbeyond.com/v1/cobalt-token")!
             var cobaltRequest = URLRequest(url: authURL)
             
             cobaltRequest.httpMethod = "POST"
             cobaltRequest.httpShouldHandleCookies = true
+            cobaltRequest.addValue("https://www.dndbeyond.com", forHTTPHeaderField: "Origin")
             cobaltRequest.httpBody = emptyData
             
             struct Cobalt: Codable {
@@ -1725,33 +1637,28 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
                         self._cobaltAuth = "Bearer " + res.token
                         self._cobaltExpires = Date(timeIntervalSinceNow: TimeInterval(res.ttl))
                         //let response = response as? HTTPURLResponse
-                        return sendAPICall(url: url,data: data)
-                    } catch {
-                        print("Error")
+                        return sendAPICall(url: url,data: data,method: method)
+                    } catch let e {
+                        print("Error getting cobalt auth - \(e)")
                         return false
                     }
                 }
             }
         } else {
-            let apiURL = URL(string:"https://www.dndbeyond.com" + url)!
+            let apiURL = (url.hasPrefix("http")) ? URL(string:url)! : URL(string:"https://www.dndbeyond.com" + url)!
             do {
-                let dataJSON = try JSONSerialization.jsonObject(with: data.data(using: .utf8)!, options: []) as! [String: Any]
-                if let csrfToken = dataJSON["csrfToken"] as? String {
-                    let cookie = HTTPCookie(properties: [
-                        .domain: "www.dndbeyond.com",
-                        .path: "/",
-                        .name: "RequestVerificationToken",
-                        .value: csrfToken,
-                        ])
-                    HTTPCookieStorage.shared.setCookie(cookie!)
-                }
                 var apiRequest = URLRequest(url: apiURL)
-                apiRequest.httpMethod = "POST"
+
+                if apiURL.host != "www.dndbeyond.com" {
+                    apiRequest.addValue("https://www.dndbeyond.com", forHTTPHeaderField: "Origin")
+                }
+                
+                apiRequest.httpMethod = method
                 apiRequest.httpShouldHandleCookies = true
                 apiRequest.addValue(_cobaltAuth!, forHTTPHeaderField: "Authorization")
                 apiRequest.addValue("application/json;charset=utf-8", forHTTPHeaderField: "Content-Type")
                 apiRequest.httpBody = data.data(using: String.Encoding.utf8)
-                let (_, _, error) = URLSession.shared.syncDataTask(urlrequest: apiRequest)
+                let (a, b, error) = URLSession.shared.syncDataTask(urlrequest: apiRequest)
                 if let error = error {
                     print("Synchronous task ended with error: \(error)")
                     return false
@@ -1762,14 +1669,6 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
                 print ("Could not send API call: \(e)")
                 return false
             }
-            /*
-             Send API Call:
-             curl -v 'https://www.dndbeyond.com/api/character/inspiration'
-             -H 'Content-Type: application/json;charset=utf-8'
-             -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjEwMTA3ODMyMSIsImh0dHA6Ly9zY2hlbWFzLnhtbHNvYXAub3JnL3dzLzIwMDUvMDUvaWRlbnRpdHkvY2xhaW1zL25hbWUiOiJycl9nZW9yZ2UiLCJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL3JvbGUiOlsiUmVnaXN0ZXJlZCBVc2VycyIsIlBIQiBCdXllciIsIkRNRyBCdXllciIsIk1NIEJ1eWVyIiwiTE1vUCBCdXllciIsIlNDQUcgQnV5ZXIiLCJWb2xvIEJ1eWVyIiwiWEd0RSBCdXllciIsIk1Ub0YgQnV5ZXIiLCJMZWdlbmRhcnkgQnVuZGxlIDAyMTgiLCJXRG90TU0gQnV5ZXIiLCJMTG9LIEJ1eWVyIiwiSGZ0VCBCdXllciIsIkRvSVAgQnV5ZXIiXSwibmJmIjoxNTY3NTQwODAyLCJleHAiOjE1Njc1NDExMDIsImlzcyI6ImRuZGJleW9uZC5jb20iLCJhdWQiOiJkbmRiZXlvbmQuY29tIn0.OfOgu0eOD_VrWNMbld_5nc7rxPuBQPw6BUYlXsu6Z1A' -H 'Connection: keep-alive' -H 'Referer: https://www.dndbeyond.com/profile/rr_george/characters/13974199'
-             -H 'Cookie: CobaltSession=eyJhbGciOiJkaXIiLCJlbmMiOiJBMTI4Q0JDLUhTMjU2In0..1VKctb1d5ljv7SjHnCVR9w.oNxg88HyNKxy9z4zFiF0x6paelNwwqN0XKCfRB0knOVTmGpCeVfiXiZ2BgVorvLW.bqmbE8Gq02tRmx5pn45rnA; RequestVerificationToken=40852781-70bf-4bc5-a7ac-95c8e4e9189a;'
-             --data '{"username":"rr_george","characterId":13974199,"csrfToken":"40852781-70bf-4bc5-a7ac-95c8e4e9189a","inspiration":false}'
-             */
         }
         return false
     }
@@ -1931,8 +1830,9 @@ extension ViewController: WKScriptMessageHandler {
                         for call in calls {
                             let url = call.url ?? ""
                             let data = call.data ?? ""
-                            if url.hasPrefix("/api") && url != "/api/character/services" && !url.hasPrefix("/api/config/json") && !url.hasPrefix("/api/subscriptionlevel") && call.data != nil {
-                                if !self.sendAPICall(url: url, data: data) {
+                            let method = call.method ?? "POST"
+                            if (url.hasPrefix("/api")||url.hasPrefix("https://character-service.dndbeyond.com/characters/v3/vehicles")) && url != "/api/character/services" && !url.hasPrefix("/api/config/json") && !url.hasPrefix("/api/subscriptionlevel") && call.data != nil {
+                                if !self.sendAPICall(url: url, data: data, method: method) {
                                     self.queuedAPICalls.append(call)
                                 }
                             } else if (url == "json") {
@@ -1947,26 +1847,26 @@ extension ViewController: WKScriptMessageHandler {
                 } else {
                     for call in calls {
                         let url = call.url ?? ""
-                        if url.hasPrefix("/api") && url != "/api/character/services" && !url.hasPrefix("/api/config/json") && !url.hasPrefix("/api/subscriptionlevel") && call.data != nil {
-                            if url == "/api/character/equipment/add" {
+                        if url.hasPrefix("https://character-service.dndbeyond.com/character/v3/character") && call.data != nil {
+                            if url.hasSuffix("/character/equipment/add") {
                                 let alertDialog = UIAlertController(title: "Caution", message: "When adding equipment offline, changes to the new item may be lost the next time this character is synced online.",preferredStyle: .alert)
                                 alertDialog.addAction(UIAlertAction(title: "Okay", style: UIAlertAction.Style.default, handler: nil))
                                 alertDialog.view.addSubview(UIView())
                                 alertDialog.popoverPresentationController?.sourceView = self.view
                                 self.present(alertDialog, animated: true, completion: nil)
-                            } else if url == "/api/character/creatures/add" {
+                            } else if url.hasSuffix("/api/character/creatures/add") {
                                 let alertDialog = UIAlertController(title: "Caution", message: "When adding creatures offline, some information cannot be populated until this character is synced online. Also, changes to the new creature may be lost the next time this character is synced online.",preferredStyle: .alert)
                                 alertDialog.addAction(UIAlertAction(title: "Okay", style: UIAlertAction.Style.default, handler: nil))
                                 alertDialog.view.addSubview(UIView())
                                 alertDialog.popoverPresentationController?.sourceView = self.view
                                 self.present(alertDialog, animated: true, completion: nil)
-                            } else if url == "https://character-service.dndbeyond.com/characters/v2/vehicles" {
+                            }/* else if url == "https://character-service.dndbeyond.com/characters/v3/vehicles" {
                                 let alertDialog = UIAlertController(title: "Not Supported", message: "Sorry, vehicle features are not currently supported offline.",preferredStyle: .alert)
                                 alertDialog.addAction(UIAlertAction(title: "Okay", style: UIAlertAction.Style.default, handler: nil))
                                 alertDialog.view.addSubview(UIView())
                                 alertDialog.popoverPresentationController?.sourceView = self.view
                                 self.present(alertDialog, animated: true, completion: nil)
-                            }
+                            }*/
                             self.queuedAPICalls.append(call)
                             saveJSON()
                         }

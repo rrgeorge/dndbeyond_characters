@@ -13,46 +13,60 @@ for(var i=0,len=abilities.length;i<len;i++){
     mod.modifier=Number(modifier[0].innerText+modifier[1].innerText);
     mods.push(mod);
 }
+if (abilities.length == 0) {
+    abilities=document.getElementsByClassName('ddbc-ability-summary')
+    saves=document.getElementsByClassName('ddbc-saving-throws-summary');
+    for(var i=0,len=abilities.length;i<len;i++){
+        (mod={}).stat=abilities[i].getElementsByClassName('ddbc-ability-summary__abbr')[0].innerText;
+        mod.save=parseInt(saves[0].getElementsByClassName('ddbc-saving-throws-summary__ability--' + mod.stat)[0].getElementsByClassName('ddbc-signed-number')[0].textContent);
+        mod.modifier = parseInt(abilities[i].getElementsByClassName('ddbc-signed-number')[0].textContent);
+        mods.push(mod)
+    }
+}
 var skills=document.getElementsByClassName('ct-skills__item');
 for(i=0,len=skills.length;i<len;i++){
     var mod;
-    (mod={}).skill=skills[i].children[2].innerText;
-    var modifier=skills[i].children[3].children[0].children;
-    mod.modifier=Number(modifier[0].innerText+modifier[1].innerText);
+    (mod={}).skill=skills[i].getElementsByClassName("ct-skills__col--skill")[0].innerText;
+    mod.modifier=parseInt(skills[i].getElementsByClassName("ct-skills__col--modifier")[0].textContent);
     mods.push(mod);
 }
 var attacks=document.getElementsByClassName('ct-combat-attack');
+if (attacks.length == 0) attacks=document.getElementsByClassName('ddbc-combat-attack');
 for(i=0,len=attacks.length;i<len;i++){
     var mod;
-    (mod={}).attack=attacks[i].children[1].children[0].innerText;
-    var modifier=attacks[i].children[3].children[0].children[0].children;
-    mod.tohit=Number(modifier[0].innerText+modifier[1].innerText);
-    mod.damage=attacks[i].children[4].innerText.trim();
-    if (attacks[i].getElementsByClassName("ct-tooltip")[0]) mod.damagetype =attacks[i].getElementsByClassName("ct-tooltip")[0].getAttribute("data-original-title");
+    (mod={}).attack=attacks[i].getElementsByClassName("ddbc-combat-attack__label")[0].textContent;
+    if (attacks[i].getElementsByClassName("ddbc-combat-attack__tohit").length > 0) {
+        mod.tohit = parseInt(attacks[i].getElementsByClassName("ddbc-combat-attack__tohit")[0].textContent)
+    } else {
+        mod.attack += " (DC: " + attacks[i].getElementsByClassName("ddbc-combat-attack__save-value")[0].textContent + " " + attacks[i].getElementsByClassName("ddbc-combat-attack__save-label")[0].textContent + ")";
+    }
+    mod.damage=attacks[i].getElementsByClassName("ddbc-damage__value")[0].textContent;
+    if (attacks[i].getElementsByClassName("ddbc-damage__value")[1]) mod.damage += "\n" + attacks[i].getElementsByClassName("ddbc-damage__value")[1].textContent;
+    if (attacks[i].getElementsByClassName("ddbc-tooltip").length > 0) mod.damagetype = attacks[i].getElementsByClassName("ddbc-tooltip")[0].getAttribute("data-original-title");
         mods.push(mod);
 }
 var spellList = document.getElementsByClassName('ct-spells-level');
 for(s=0,slen=spellList.length;s<slen;s++) {
-    var spellLevel = spellList[s].parentNode.previousSibling.children[0].textContent;
+    var spellLevel = spellList[s].parentNode.parentNode.getElementsByClassName("ct-content-group__header-content")[0].textContent;
     var spells = spellList[s].getElementsByClassName('ct-spells-spell');
     for(i=0,len=spells.length;i<len;i++) {
-        if (spells[i].getElementsByClassName('ct-spell-damage-effect__damages').length > 0) {
+        if (spells[i].getElementsByClassName('ct-spell-damage-effect__damages').length > 0 || spells[i].getElementsByClassName('ddbc-spell-damage-effect__damages').length > 0) {
             var mod;
-            var spellName = spells[i].children[1].children[0].innerText;
-            var damage = spells[i].getElementsByClassName('ct-spell-damage-effect__damages')[0].children[0].innerText;
+            var spellName = spells[i].getElementsByClassName("ct-spells-spell__name")[0].getElementsByClassName("ct-spells-spell__label")[0].textContent;
+            var damage = spells[i].getElementsByClassName("ddbc-damage__value")[0].textContent;
             (mod={}).attack=spellLevel + " " + spellName;
             if (spells[i].children[4].children[0].children[0]) {
-                var modifier = spells[i].children[4].children[0].children[0].children;
+                var modifier = spells[i].getElementsByClassName("ct-spells-spell__tohit");
                 
                 if (modifier[0]) {
-                    mod.tohit=Number(modifier[0].innerText+modifier[1].innerText);
+                    mod.tohit=parseInt(modifier[0].textContent);
                 } else {
-                    var dc1 = spells[i].children[4].children[0].children[0].innerText;
-                    var dc2 = spells[i].children[4].children[0].children[1].innerText;
+                    var dc1 = spells[i].getElementsByClassName("ct-spells-spell__save-value")[0].textContent;
+                    var dc2 = spells[i].getElementsByClassName("ct-spells-spell__save-label")[0].textContent;
                     mod.attack += " (DC: " + dc1 + " " + dc2 + ")";
                 }
             }
-            mod.damage=damage.trim();
+            mod.damage=damage;
             if(spells[i].getElementsByClassName("ct-tooltip")[1]) mod.damagetype = spells[i].getElementsByClassName("ct-tooltip")[1].getAttribute("data-original-title");
             mods.push(mod);
         }
@@ -61,8 +75,8 @@ for(s=0,slen=spellList.length;s<slen;s++) {
 var sidebar = document.getElementsByClassName("ct-sidebar--visible")[0];
 if (sidebar) {
     var newMods = [];
-    if (sidebar.getElementsByClassName("ct-spell-name")[0]) {
-        var spellName = sidebar.getElementsByClassName("ct-spell-name")[0].innerText;
+    if (sidebar.getElementsByClassName("ct-spell-name")[0] || sidebar.getElementsByClassName("ddbc-spell-name")[0]) {
+        var spellName = sidebar.getElementsByClassName("ct-spell-name")[0]? sidebar.getElementsByClassName("ct-spell-name")[0].innerText : sidebar.getElementsByClassName("ddbc-spell-name")[0].innerText;
         var spellAttacks = sidebar.getElementsByClassName("ct-spell-caster__modifier--damage");
         var properties =  sidebar.getElementsByClassName("ct-property-list__property");
         var spelllvlbx = sidebar.getElementsByClassName("ct-spell-detail__level-school");

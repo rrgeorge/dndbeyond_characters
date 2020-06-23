@@ -1,10 +1,10 @@
 //
 //  VMInsults.swift
-//  D&D Beyond Characters
 //
 //  Created by Robert George on 8/29/19.
 //  Copyright © 2019 Robert George. All rights reserved.
 //
+//  Derived list from: https://github.com/wilderMann/Vicious-Mockery-Generator/blob/master/Insults.txt
 
 import Foundation
 

@@ -49,12 +49,12 @@ class DDBCacheHandler: NSObject, WKURLSchemeHandler {
             } else if url.lastPathComponent == "my-characters" {
                 urlPath = url.lastPathComponent + ".html"
                 charJSON = nil
-            } else if url.path == "/content/syndication/tt.css" {
-                charJSON = nil
-                urlPath = "/Content/syndication/tt.css"
             } else if url.path == "/api/character/svg/download" && url.query != nil {
                 charJSON = nil
                 urlPath = (url.query! as NSString).replacingOccurrences(of: "themeId=([0-9]+)&name=([^)\"]*)", with: "/api/character/$2_$1.svg", options: .regularExpression, range:NSMakeRange(0, (url.query! as NSString).length))
+            } else if url.path.range(of: "/[Cc]ontent(/[0-9-]+)?", options: .regularExpression) != nil {
+                charJSON = nil
+                urlPath = (url.path as NSString).replacingOccurrences(of: "/[Cc]ontent(/[0-9-]+)?", with: "/content", options: .regularExpression, range:NSMakeRange(0, (url.path as NSString).length))
             } else {
                 charJSON = nil
                 urlPath = url.path
@@ -80,7 +80,13 @@ class DDBCacheHandler: NSObject, WKURLSchemeHandler {
             do {
                 var fileURL = try FileManager.default.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: false).appendingPathComponent(urlPath)
                 if !FileManager.default.fileExists(atPath: fileURL.path) {
+                    fileURL = try FileManager.default.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: false).appendingPathComponent(urlPath.lowercased().lowercased())
+                }
+                if !FileManager.default.fileExists(atPath: fileURL.path) {
                     fileURL = try FileManager.default.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: false).appendingPathComponent("com.dndbeyond.resourcecache" + urlPath)
+                }
+                if !FileManager.default.fileExists(atPath: fileURL.path) {
+                    fileURL = try FileManager.default.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: false).appendingPathComponent("com.dndbeyond.resourcecache" + urlPath.lowercased())
                 }
                 if FileManager.default.fileExists(atPath: fileURL.path) {
                     let urlResponse: URLResponse

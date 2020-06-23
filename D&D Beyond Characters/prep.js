@@ -11,13 +11,15 @@ var handleOfflineAPI = function(calls) {
 var open_proto_orig = XMLHttpRequest.prototype.open;
 var open_proto_repl = function open(method, url, async, user, password) {
     this._url = url;
+    this._method = method;
     return open_proto_orig.apply(this, arguments);
 };
 var send_proto_orig = XMLHttpRequest.prototype.send;
 var send_proto_repl = function send(data) {
     var call = {};
     var dataObj = JSON.parse(data);
-    if (this._url.startsWith("/api/")) {
+    var urlObj = new URL(this._url);
+    if (this._url.startsWith("https://character-service.dndbeyond.com/character/v3/character/") && !urlObj.pathname.endsWith(jsonfiles["characterjson"].data.id)) {
         Object.defineProperty(this,'readyState', { configurable: true, writable: true });
         Object.defineProperty(this,'status', { configurable: true, writable: true });
         Object.defineProperty(this,'statusText', { configurable: true, writable: true });
@@ -33,280 +35,282 @@ var send_proto_repl = function send(data) {
             this.responseURL = document.location.protocol + "//" + document.location.host + this._url;
         }
         this.onerror = null;
-        if (this._url.startsWith("/api/config/json") && typeof jsonconfig !== 'undefined') {
-            this.response = jsonconfig;
-            this.responseText = jsonconfig;
-        } else if (this._url.startsWith("/api/spells/list/json") && typeof jsonspells !== 'undefined') {
-            var qregex = /(characterClassId)=?([^&]*)/;
-            var qmatch = qregex.exec(this._url);
-            if (qmatch && qmatch[2] && jsonspells[qmatch[2]]) {
-                this.response = jsonspells[qmatch[2]];
-                this.responseText = jsonspells[qmatch[2]];
-            }
-        } else if (this._url.startsWith("/api/equipment/list/json") && typeof jsonequip !== 'undefined') {
-            this.response = jsonequip;
-            this.responseText = jsonequip;
-        } else if (this._url.startsWith("/api/monsters") && typeof jsonmonster !== 'undefined') {
-            this.response = jsonmonster;
-            this.responseText = jsonmonster;
-        } else {
-            var respObj = {};
-            if (dataObj && dataObj.characterId) {
-                respObj.id = dataObj.characterId;
-            }
-            respObj.success = true;
-            respObj.message = "Success";
-            respObj.result = {};
-            if (this._url.startsWith("/api/character/") && typeof jsonfile !== 'undefined') {
-                var character = jsonfile.character;
-                var apiRegex = new RegExp(".*/api/character/([^/]+)/?([^/]*)/?(.*)");
-                var characterAPI = apiRegex.exec(this._url);
-		var idx,level,message;
-                switch(characterAPI[1]) {
-                    case "ability-score":
-                        if (characterAPI[2] && characterAPI[2] == "set") {
-                            if (dataObj.type == 2) {
-                                idx = character.bonusStats.findIndex(x=>x.id == dataObj.id);
-                                character.bonusStats[idx] = dataObj.value;
-                            }
-                            if (dataObj.type == 3) {
-                                idx = character.overrideStats.findIndex(x=>x.id==dataObj.id);
-                                character.overrideStats[idx] = dataObj.value;
-                            }
+        var respObj = {};
+        if (dataObj && dataObj.characterId) {
+            respObj.id = dataObj.characterId;
+        }
+        respObj.success = true;
+        respObj.message = "Success";
+        respObj.data = {};
+        if (typeof jsonfile !== 'undefined') {
+            var character = jsonfiles["characterjson"].data;
+            var apiRegex = new RegExp("https://character-service.dndbeyond.com/character/v3/character/([^/]+)/?([^/]*)/?(.*)");
+            var characterAPI = apiRegex.exec(this._url);
+    var idx,level,message;
+            switch(characterAPI[1]) {
+                case "ability-score":
+                    if (characterAPI[2] && characterAPI[2] == "set") {
+                        if (dataObj.type == 2) {
+                            idx = character.bonusStats.findIndex(x=>x.id == dataObj.id);
+                            character.bonusStats[idx] = dataObj.value;
                         }
-                    break;
-                    case "bonus-hp":
-                        if (characterAPI[2] && characterAPI[2] == "set") {
-                            character.bonusHitPoints = dataObj.bonusHitPoints;
-                            respObj.result = { "miscHPBonus": dataObj.bonusHitPoints };
+                        if (dataObj.type == 3) {
+                            idx = character.overrideStats.findIndex(x=>x.id==dataObj.id);
+                            character.overrideStats[idx] = dataObj.value;
                         }
-                    break;
-                    case "character-value":
-                        if (characterAPI[2] && characterAPI[2] == "set") {
-                            idx = character.characterValues.findIndex(x=>x.valueId == dataObj.valueId);
-                            if (idx > -1) {
-                                if (dataObj.value == null) {
-                                    character.characterValues.splice(idx,1);
-                                } else {
-                                    character.characterValues[idx].contextId = dataObj.contextId;
-                                    character.characterValues[idx].contextTypeId = dataObj.contextTypeId;
-                                    character.characterValues[idx].notes = dataObj.notes;
-                                    character.characterValues[idx].typeId = dataObj.typeId;
-                                    character.characterValues[idx].value = dataObj.value;
-                                    character.characterValues[idx].valueTypeId = dataObj.valueTypeId;
-                                }
+                    }
+                break;
+                case "bonus-hp":
+                    if (characterAPI[2] && characterAPI[2] == "set") {
+                        character.bonusHitPoints = dataObj.bonusHitPoints;
+                        respObj.data = { "miscHPBonus": dataObj.bonusHitPoints };
+                    }
+                break;
+                case "character-value":
+                    if (characterAPI[2] && characterAPI[2] == "set") {
+                        idx = character.characterValues.findIndex(x=>x.valueId == dataObj.valueId);
+                        if (idx > -1) {
+                            if (dataObj.value == null) {
+                                character.characterValues.splice(idx,1);
                             } else {
-                                character.characterValues.push({
-                                       "contextId": dataObj.contextId,
-                                       "contextTypeId": dataObj.contextTypeId,
-                                       "notes": dataObj.notes,
-                                       "typeId": dataObj.typeId,
-                                       "value": dataObj.value,
-                                       "valueTypeId": dataObj.valueTypeId
-                                       });
+                                character.characterValues[idx].contextId = dataObj.contextId;
+                                character.characterValues[idx].contextTypeId = dataObj.contextTypeId;
+                                character.characterValues[idx].notes = dataObj.notes;
+                                character.characterValues[idx].typeId = dataObj.typeId;
+                                character.characterValues[idx].value = dataObj.value;
+                                character.characterValues[idx].valueTypeId = dataObj.valueTypeId;
                             }
+                        } else {
+                            character.characterValues.push({
+                                   "contextId": dataObj.contextId,
+                                   "contextTypeId": dataObj.contextTypeId,
+                                   "notes": dataObj.notes,
+                                   "typeId": dataObj.typeId,
+                                   "value": dataObj.value,
+                                   "valueTypeId": dataObj.valueTypeId
+                                   });
                         }
-                    break;
-                    case "conditions":
-                        if (character.conditions && characterAPI[2] == "set") {
-                            idx = character.conditions.findIndex(x=>x.id==dataObj.id);
-                            if (idx > -1) {
-                                character.conditions[idx].level = dataObj.level;
-                                if (dataObj.id == 4 && dataObj.level == null) {
-                                    character.conditions.splice(idx,1);
-                                }
-                            } else {
-                                character.conditions.push({id: dataObj.id, level: dataObj.level});
+                    }
+                break;
+                case "conditions":
+                    if (character.conditions && characterAPI[2] == "set") {
+                        idx = character.conditions.findIndex(x=>x.id==dataObj.id);
+                        if (idx > -1) {
+                            character.conditions[idx].level = dataObj.level;
+                            if (dataObj.id == 4 && dataObj.level == null) {
+                                character.conditions.splice(idx,1);
                             }
-                            
+                        } else {
+                            character.conditions.push({id: dataObj.id, level: dataObj.level});
                         }
-                        else if (character.conditions && characterAPI[2] == "remove") {
-                            idx = character.conditions.findIndex(x=>x.id==dataObj.id);
-                            if (idx > -1) character.conditions.splice(idx,1);
-                        }
-                        respObj.result = {
-                                "removedHitPoints": character.removedHitPoints,
-                                "temporaryHitPoints": character.temporaryHitPoints,
-                                "conditions": character.conditions,
-                                "modifiers": character.modifiers
-                            };
-                    break;
-                    case "currency":
-                        if (characterAPI[2] && characterAPI[2] == "set") {
-                            character.currencies.cp = dataObj.cp;
-                            character.currencies.sp = dataObj.sp;
-                            character.currencies.gp = dataObj.gp;
-                            character.currencies.ep = dataObj.ep;
-                            character.currencies.pp = dataObj.pp;
-                        }
-		    break;
-                    case "creatures":
-                        if (characterAPI[2] && characterAPI[2] == "add") {
-                            var maxID = 2638523;
-                            var added = [];
-                            character.creatures.forEach(function(item,i){if(item.id > maxID) maxID = item.id;});
-                            maxID += 1;
-                            idx = jsonmonster.findIndex(x=>x.id==dataObj.monsterId);
-                            if (idx > -1) {
-                                dataObj.names.forEach(function(name,i){
-                                let newCreature = {
-                                      "id": maxID,
-                                      "entityTypeId": 1295433283,
-                                      "name": name,
-                                      "description": null,
-                                      "isActive": false,
-                                      "removedHitPoints": 0,
-                                      "temporaryHitPoints": null,
-                                      "groupId": dataObj.groupId,
-                                      "definition": JSON.parse(JSON.stringify(jsonmonster[idx])),
-                                      "limitedUse": null
-                                 };
-                                 if (typeof newCreature.definition.damageAdjustments === 'undefined' ) newCreature.definition.damageAdjustments = [];
-                                 if (typeof newCreature.definition.conditionImmunities === 'undefined' ) newCreature.definition.conditionImmunities = [];
-                                 if (typeof newCreature.definition.stats === 'undefined' ) newCreature.definition.stats = [];
-                                 if (typeof newCreature.definition.stats === 'undefined' ) newCreature.definition.stats = [];
-                                 if (typeof newCreature.definition.savingThrows === 'undefined' ) newCreature.definition.savingThrows = [];
-                                 if (typeof newCreature.definition.skills === 'undefined' ) newCreature.definition.skills = [];
-                                 if (typeof newCreature.definition.senses === 'undefined' ) newCreature.definition.senses = [];
-                                 if (typeof newCreature.definition.languages === 'undefined' ) newCreature.definition.languages = [];
-                                 added.push(newCreature);
-                                 maxID += 1;
-                                });
-                            }
-                            character.creatures = character.creatures.concat(added);
-                            
-                            respObj.result = added;
-                             
-                        }
-                        if (characterAPI[2] && characterAPI[2] == "hit-points" && characterAPI[3] && characterAPI[3] == "set") {
-                            idx = character.creatures.findIndex(x=>x.id==dataObj.id);
-                            if (idx > -1) {
-                                character.creatures[idx].removedHitPoints = dataObj.removedHitPoints;
-                                character.creatures[idx].temporaryHitPoints = dataObj.temporaryHitPoints;
-                            }
-                        }
-                        if (characterAPI[2] && characterAPI[2] == "remove") {
-                            idx = character.creatures.findIndex(x=>x.id==dataObj.id);
-                            if (idx > -1) {
-                                character.creatures.splice(idx,1);
-                            }
-                        }
-                        if (characterAPI[2] && characterAPI[2] == "set") {
-                            idx = character.creatures.findIndex(x=>x.id==dataObj.id);
-                            if (idx > -1) {
-                                character.creatures[idx].name = dataObj.name;
-                            }
-                        }
-                    break;
-                    case "damage":
-                        if (characterAPI[2] && characterAPI[2] == "set") {
-                            character.removedHitPoints = dataObj.removedHitPoints;
-                            character.temporaryHitPoints = dataObj.temporaryHitPoints;
-                            respObj.result = {
-                                "removedHitPoints": dataObj.removedHitPoints,
-                                "temporaryHitPoints": dataObj.temporaryHitPoints
-                            };
-                        }
-                    break;
-                    case "equipment":
-                        if (characterAPI[2] && characterAPI[2] == "equip") {
-                            idx = character.inventory.findIndex(x=>x.id==dataObj.id);
-                            if (idx > -1) {
-                                character.inventory[idx].equipped = true;
-                            }
-                        }
-                        if (characterAPI[2] && characterAPI[2] == "unequip") {
-                            idx = character.inventory.findIndex(x=>x.id==dataObj.id);
-                            if (idx > -1) {
-                                character.inventory[idx].equipped = false;
-                            }
-                        }
-                        if (characterAPI[2] && characterAPI[2] == "increment") {
-                            idx = character.inventory.findIndex(x=>x.id==dataObj.id);
-                            if (idx > -1) {
-                                character.inventory[idx].quantity += dataObj.quantity;
-                                if (character.inventory[idx].quantity < 0) {
-                                    character.inventory[idx].quantity = 0;
-                                }
-                            }
-                        }
-                        if (characterAPI[2] && characterAPI[2] == "decrement") {
-                            idx = character.inventory.findIndex(x=>x.id==dataObj.id);
-                            if (idx > -1) {
-                                character.inventory[idx].quantity -= dataObj.quantity;
-                                if (character.inventory[idx].quantity < 0) {
-                                    character.inventory[idx].quantity = 0;
-                                }
-                            }
-                        }
-                        if (characterAPI[2] && characterAPI[2] == "remove") {
-                            idx = character.inventory.findIndex(x=>x.id==dataObj.id);
-                            if (idx > -1) {
-                                character.inventory.splice(idx,1);
-                            }
-                        }
-                        if (characterAPI[2] && characterAPI[2] == "attune") {
-                            idx = character.inventory.findIndex(x=>x.id==dataObj.id);
-                            if (idx > -1) {
-                                character.inventory[idx].isAttuned = true;
-                            }
-                        }
-                        if (characterAPI[2] && characterAPI[2] == "unattune") {
-                            idx = character.inventory.findIndex(x=>x.id==dataObj.id);
-                            if (idx > -1) {
-                                character.inventory[idx].isAttuned = false;
-                            }
-                        }
-                        if (characterAPI[2] && characterAPI[2] == "add") {
-                            let maxID = 162858826;
-                            let added = [];
-                            character.inventory.forEach(function(item,i){if(item.id > maxID) maxID = item.id;});
-                            maxID += 1;
-                            dataObj.equipment.forEach(function(item,i){
-                                idx = jsonequip.findIndex(x=>x.id==item.entityId&&x.entityTypeId==item.entityTypeId);
-                                if (idx > -1) {
-                                     added.push({
-                                          "id": maxID,
-                                          "entityTypeId": 1439493548,
-                                          "quantity": item.quantity,
-                                          "isAttuned": false,
-                                          "equipped": false,
-                                          "definition": JSON.parse(JSON.stringify(jsonequip[idx])),
-                                          "limitedUse": null
-                                     });
-                                }
+                        
+                    }
+                    else if (character.conditions && characterAPI[2] == "remove") {
+                        idx = character.conditions.findIndex(x=>x.id==dataObj.id);
+                        if (idx > -1) character.conditions.splice(idx,1);
+                    }
+                    respObj.data = {
+                            "removedHitPoints": character.removedHitPoints,
+                            "temporaryHitPoints": character.temporaryHitPoints,
+                            "conditions": character.conditions,
+                            "modifiers": character.modifiers
+                        };
+                break;
+                case "currency":
+                    if (characterAPI[2] && characterAPI[2] == "set") {
+                        character.currencies.cp = dataObj.cp;
+                        character.currencies.sp = dataObj.sp;
+                        character.currencies.gp = dataObj.gp;
+                        character.currencies.ep = dataObj.ep;
+                        character.currencies.pp = dataObj.pp;
+                    }
+        break;
+                case "creatures":
+                    if (characterAPI[2] && characterAPI[2] == "add") {
+                        var maxID = 2638523;
+                        var added = [];
+                        character.creatures.forEach(function(item,i){if(item.id > maxID) maxID = item.id;});
+                        maxID += 1;
+                        idx = jsonmonster.findIndex(x=>x.id==dataObj.monsterId);
+                        if (idx > -1) {
+                            dataObj.names.forEach(function(name,i){
+                            let newCreature = {
+                                  "id": maxID,
+                                  "entityTypeId": 1295433283,
+                                  "name": name,
+                                  "description": null,
+                                  "isActive": false,
+                                  "removedHitPoints": 0,
+                                  "temporaryHitPoints": null,
+                                  "groupId": dataObj.groupId,
+                                  "definition": JSON.parse(JSON.stringify(jsonmonster[idx])),
+                                  "limitedUse": null
+                             };
+                             if (typeof newCreature.definition.damageAdjustments === 'undefined' ) newCreature.definition.damageAdjustments = [];
+                             if (typeof newCreature.definition.conditionImmunities === 'undefined' ) newCreature.definition.conditionImmunities = [];
+                             if (typeof newCreature.definition.stats === 'undefined' ) newCreature.definition.stats = [];
+                             if (typeof newCreature.definition.stats === 'undefined' ) newCreature.definition.stats = [];
+                             if (typeof newCreature.definition.savingThrows === 'undefined' ) newCreature.definition.savingThrows = [];
+                             if (typeof newCreature.definition.skills === 'undefined' ) newCreature.definition.skills = [];
+                             if (typeof newCreature.definition.senses === 'undefined' ) newCreature.definition.senses = [];
+                             if (typeof newCreature.definition.languages === 'undefined' ) newCreature.definition.languages = [];
+                             added.push(newCreature);
+                             maxID += 1;
                             });
-                            character.inventory = character.inventory.concat(added);
-                            respObj.result = {
-                                 "addItems": added,
-                                 "spells": { "item": character.spells.item },
-                                 "modifiers": { "item": character.modifiers.item }
-                            };
                         }
-                    break;
-                    case "inspiration":
-                        character.inspiration = dataObj.inspiration;
-                        respObj.result = { "inspiration": dataObj.inspiration };
-                    break;
-                    case "lifestyle":
-                        if (characterAPI[2] && characterAPI[2] == "set") {
-                            character.lifestyleId = dataObj.lifestyleId;
+                        character.creatures = character.creatures.concat(added);
+                        
+                        respObj.data = added;
+                         
+                    }
+                    if (characterAPI[2] && characterAPI[2] == "hit-points" && characterAPI[3] && characterAPI[3] == "set") {
+                        idx = character.creatures.findIndex(x=>x.id==dataObj.id);
+                        if (idx > -1) {
+                            character.creatures[idx].removedHitPoints = dataObj.removedHitPoints;
+                            character.creatures[idx].temporaryHitPoints = dataObj.temporaryHitPoints;
                         }
-                    break;
-                    case "limiteduse":
-                        if (characterAPI[2] && characterAPI[2] == "set") {
-                            idx = character.actions.class(x=>x.id==dataObj.id);
-                            if (idx > -1) {
-                                character.actions.class[idx].limitedUse.numberUsed = dataObj.uses;
+                    }
+                    if (characterAPI[2] && characterAPI[2] == "remove") {
+                        idx = character.creatures.findIndex(x=>x.id==dataObj.id);
+                        if (idx > -1) {
+                            character.creatures.splice(idx,1);
+                        }
+                    }
+                    if (characterAPI[2] && characterAPI[2] == "set") {
+                        idx = character.creatures.findIndex(x=>x.id==dataObj.id);
+                        if (idx > -1) {
+                            character.creatures[idx].name = dataObj.name;
+                        }
+                    }
+                break;
+                case "damage":
+                    if (characterAPI[2] && characterAPI[2] == "set") {
+                        character.removedHitPoints = dataObj.removedHitPoints;
+                        character.temporaryHitPoints = dataObj.temporaryHitPoints;
+                        respObj.data = {
+                            "removedHitPoints": dataObj.removedHitPoints,
+                            "temporaryHitPoints": dataObj.temporaryHitPoints
+                        };
+                    }
+                break;
+                case "equipment":
+                    if (characterAPI[2] && characterAPI[2] == "equip") {
+                        idx = character.inventory.findIndex(x=>x.id==dataObj.id);
+                        if (idx > -1) {
+                            character.inventory[idx].equipped = true;
+                        }
+                    }
+                    if (characterAPI[2] && characterAPI[2] == "unequip") {
+                        idx = character.inventory.findIndex(x=>x.id==dataObj.id);
+                        if (idx > -1) {
+                            character.inventory[idx].equipped = false;
+                        }
+                    }
+                    if (characterAPI[2] && characterAPI[2] == "increment") {
+                        idx = character.inventory.findIndex(x=>x.id==dataObj.id);
+                        if (idx > -1) {
+                            character.inventory[idx].quantity += dataObj.quantity;
+                            if (character.inventory[idx].quantity < 0) {
+                                character.inventory[idx].quantity = 0;
                             }
-                            idx = character.actions.race(x=>x.id==dataObj.id);
-                            if (idx > -1) {
-                                character.actions.race[idx].limitedUse.numberUsed = dataObj.uses;
+                        }
+                    }
+                    if (characterAPI[2] && characterAPI[2] == "decrement") {
+                        idx = character.inventory.findIndex(x=>x.id==dataObj.id);
+                        if (idx > -1) {
+                            character.inventory[idx].quantity -= dataObj.quantity;
+                            if (character.inventory[idx].quantity < 0) {
+                                character.inventory[idx].quantity = 0;
                             }
                         }
-                    break;
-                    case "long-rest":
-                        if (characterAPI[2] && characterAPI[2].startsWith("message")) {
+                    }
+                    if (characterAPI[2] && characterAPI[2] == "remove") {
+                        idx = character.inventory.findIndex(x=>x.id==dataObj.id);
+                        if (idx > -1) {
+                            character.inventory.splice(idx,1);
+                        }
+                    }
+                    if (characterAPI[2] && characterAPI[2] == "attune") {
+                        idx = character.inventory.findIndex(x=>x.id==dataObj.id);
+                        if (idx > -1) {
+                            character.inventory[idx].isAttuned = true;
+                        }
+                    }
+                    if (characterAPI[2] && characterAPI[2] == "unattune") {
+                        idx = character.inventory.findIndex(x=>x.id==dataObj.id);
+                        if (idx > -1) {
+                            character.inventory[idx].isAttuned = false;
+                        }
+                    }
+                    if (characterAPI[2] && characterAPI[2] == "add") {
+                        let maxID = 162858826;
+                        let added = [];
+                        character.inventory.forEach(function(item,i){if(item.id > maxID) maxID = item.id;});
+                        maxID += 1;
+                        dataObj.equipment.forEach(function(item,i){
+                            idx = jsonequip.findIndex(x=>x.id==item.entityId&&x.entityTypeId==item.entityTypeId);
+                            if (idx > -1) {
+                                 added.push({
+                                      "id": maxID,
+                                      "entityTypeId": 1439493548,
+                                      "quantity": item.quantity,
+                                      "isAttuned": false,
+                                      "equipped": false,
+                                      "definition": JSON.parse(JSON.stringify(jsonequip[idx])),
+                                      "limitedUse": null
+                                 });
+                            }
+                        });
+                        character.inventory = character.inventory.concat(added);
+                        respObj.data = {
+                             "addItems": added,
+                             "spells": { "item": character.spells.item },
+                             "modifiers": { "item": character.modifiers.item }
+                        };
+                    }
+                break;
+                case "inspiration":
+                    character.inspiration = dataObj.inspiration;
+                    respObj.data = { "inspiration": dataObj.inspiration };
+                break;
+                case "lifestyle":
+                    if (characterAPI[2] && characterAPI[2] == "set") {
+                        character.lifestyleId = dataObj.lifestyleId;
+                    }
+                break;
+                case "limiteduse":
+                    if (characterAPI[2] && characterAPI[2] == "set") {
+                        idx = character.actions.class(x=>x.id==dataObj.id);
+                        if (idx > -1) {
+                            character.actions.class[idx].limitedUse.numberUsed = dataObj.uses;
+                        }
+                        idx = character.actions.race(x=>x.id==dataObj.id);
+                        if (idx > -1) {
+                            character.actions.race[idx].limitedUse.numberUsed = dataObj.uses;
+                        }
+                    }
+                break;
+                case "override-hp":
+                    if (characterAPI[2] && characterAPI[2] == "set") {
+                        character.overrideHitPoints = dataObj.overrideHitPoints;
+                        respObj.data = { "overrideHitPoints": dataObj.overrideHitPoints };
+                    }
+                break;
+                case "pactMagic":
+                    if (characterAPI[2] && characterAPI[2] == "slot" && characterAPI[3] && characterAPI[3] == "use") {
+                        idx = character.pactMagic.findIndex(x=>x.level==dataObj.level);
+                        character.pactMagic[idx].used ++;
+                        if (character.pactMagic[idx].used < 0) character.pactMagic[idx].used = 0;
+                    }
+                    if (characterAPI[2] && characterAPI[2] == "slot" && characterAPI[3] && characterAPI[3] == "clear") {
+                        idx = character.pactMagic.findIndex(x=>x.level==dataObj.level);
+                        character.pactMagic[idx].used --;
+                        if (character.pactMagic[idx].used < 0) character.pactMagic[idx].used = 0;
+                    }
+                break;
+                case "rest":
+                    if (characterAPI[2] && characterAPI[2].startsWith("long")) {
+                        if (!dataObj) {
                             message = "Up to ";
                             level = 0;
                             character.classes.forEach(function(cl){ level += cl.level; });
@@ -337,7 +341,7 @@ var send_proto_repl = function send(data) {
                                             message += ", 1 Level of Exhaustion";
                                         }
                                     });
-                            respObj.message = message;
+                            respObj.data = message;
                         } else {
                             var classes = character.classes;
                             classes.sort(function (a, b) { return a.definition.name < b.definition.name ? -1 : a.definition.name > b.definition.name ? 1 : 0; });
@@ -384,7 +388,7 @@ var send_proto_repl = function send(data) {
                                         }
                                     }
                             }
-                            respObj.result = {
+                            respObj.data = {
                                 "bonusHitPoints": character.bonusHitPoints,
                                 "overrideHitPoints": character.overrideHitPoints,
                                 "removedHitPoints": character.removedHitPoints,
@@ -398,138 +402,119 @@ var send_proto_repl = function send(data) {
                                 "modifiers": character.modifiers
                             };
                         }
-                        break;
-                    case "override-hp":
-                        if (characterAPI[2] && characterAPI[2] == "set") {
-                            character.overrideHitPoints = dataObj.overrideHitPoints;
-                            respObj.result = { "overrideHitPoints": dataObj.overrideHitPoints };
-                        }
-                    break;
-                    case "pactMagic":
-                        if (characterAPI[2] && characterAPI[2] == "slot" && characterAPI[3] && characterAPI[3] == "use") {
-                            idx = character.pactMagic.findIndex(x=>x.level==dataObj.level);
-                            character.pactMagic[idx].used ++;
-                            if (character.pactMagic[idx].used < 0) character.pactMagic[idx].used = 0;
-                        }
-                        if (characterAPI[2] && characterAPI[2] == "slot" && characterAPI[3] && characterAPI[3] == "clear") {
-                            idx = character.pactMagic.findIndex(x=>x.level==dataObj.level);
-                            character.pactMagic[idx].used --;
-                            if (character.pactMagic[idx].used < 0) character.pactMagic[idx].used = 0;
-                        }
-                    break;
-                    case "short-rest":
-                        if (characterAPI[2] && characterAPI[2].startsWith("message")) {
-                            message = "";
-                            character.actions.class.forEach(function(cl) {
-                                         if (cl.limitedUse) {
-                                            if (cl.limitedUse.resetType == 1) {
-                                                if (message.length > 0) message += ", ";
-                                                message += cl.name;
-                                            }
-                                        }
-                                    });
-                            character.actions.race.forEach(function(cl) {
-                                         if (cl.limitedUse) {
-                                             if (cl.limitedUse.resetType == 1) {
-                                                if (message.length > 0) message += ", ";
-                                                message += cl.name;
-                                             }
-                                         }
-                                     });
-                            respObj.message = message;
-                        } else {
-                            if (dataObj.resetMaxHpModifier) {
-                                character.removedHitPoints = 0;
-                            }
-                            Object.keys(dataObj.classHitDiceUsed).forEach(function(id){
-                                        character.classes.forEach(function(cl){
-                                            if (cl.id == id) {
-                                                cl.hitDiceUsed = dataObj.classHitDiceUsed[id];
+                    } else if (characterAPI[2] && characterAPI[2].startsWith("short")) {
+                            if (!dataObj) {
+                                message = "";
+                                character.actions.class.forEach(function(cl) {
+                                             if (cl.limitedUse) {
+                                                if (cl.limitedUse.resetType == 1) {
+                                                    if (message.length > 0) message += ", ";
+                                                    message += cl.name;
+                                                }
                                             }
                                         });
-                             });
-                            character.actions.class.forEach(function(cl) {
-                                         if (cl.limitedUse) {
-                                            if (cl.limitedUse.resetType == 1) {
-                                                 cl.limitedUse.numberUsed = 0;
-                                            }
-                                        }
-                                    });
-                            character.actions.race.forEach(function(cl) {
-                                         if (cl.limitedUse) {
-                                             if (cl.limitedUse.resetType == 1) {
-                                                cl.limitedUse.numberUsed = 0;
+                                character.actions.race.forEach(function(cl) {
+                                             if (cl.limitedUse) {
+                                                 if (cl.limitedUse.resetType == 1) {
+                                                    if (message.length > 0) message += ", ";
+                                                    message += cl.name;
+                                                 }
                                              }
-                                         }
-                                     });
-                            
-                            respObj.result = {
-                                "bonusHitPoints": character.bonusHitPoints,
-                                "overrideHitPoints": character.overrideHitPoints,
-                                "removedHitPoints": character.removedHitPoints,
-                                "temporaryHitPoints": character.temporaryHitPoints,
-                                "spellSlots": character.spellSlots,
-                                "pactMagic": character.pactMagic,
-                                "spells": character.spells,
-                                "actions": character.actions,
-                                "classes": character.classes,
-                                "conditions": character.conditions,
-                                "modifiers": character.modifiers
-                            };
-                        }
-                        break;
-                        case "spells":
-                        if (characterAPI[2] && characterAPI[2] == "known" && characterAPI[3] && characterAPI[3] == "add") {
-                            //entityTypeId
-                            //id
-                            //spellId
-                            
-                            idx = jsonspells[dataObj.characterClassId].findIndex(x=>x.id==dataObj.id&&x.entityTypeId==dataObj.entityTypeId&&x.definition.id==dataObj.spellId);
-                            if(idx>-1) {
-                                respObj.id = dataObj.characterId;
-                                respObj.result = jsonspells[dataObj.characterClassId][idx];
-                                idx2 = character.classSpells.findIndex(x=>x.characterClassId==dataObj.characterClassId);
-                                if (idx2>-1) {
-                                    character.classSpells[idx2].spells.push(jsonspells[dataObj.characterClassId][idx]);
+                                         });
+                                respObj.data = message;
+                            } else {
+                                if (dataObj.resetMaxHpModifier) {
+                                    character.removedHitPoints = 0;
                                 }
+                                Object.keys(dataObj.classHitDiceUsed).forEach(function(id){
+                                            character.classes.forEach(function(cl){
+                                                if (cl.id == id) {
+                                                    cl.hitDiceUsed = dataObj.classHitDiceUsed[id];
+                                                }
+                                            });
+                                 });
+                                character.actions.class.forEach(function(cl) {
+                                             if (cl.limitedUse) {
+                                                if (cl.limitedUse.resetType == 1) {
+                                                     cl.limitedUse.numberUsed = 0;
+                                                }
+                                            }
+                                        });
+                                character.actions.race.forEach(function(cl) {
+                                             if (cl.limitedUse) {
+                                                 if (cl.limitedUse.resetType == 1) {
+                                                    cl.limitedUse.numberUsed = 0;
+                                                 }
+                                             }
+                                         });
+                                
+                                respObj.data = {
+                                    "bonusHitPoints": character.bonusHitPoints,
+                                    "overrideHitPoints": character.overrideHitPoints,
+                                    "removedHitPoints": character.removedHitPoints,
+                                    "temporaryHitPoints": character.temporaryHitPoints,
+                                    "spellSlots": character.spellSlots,
+                                    "pactMagic": character.pactMagic,
+                                    "spells": character.spells,
+                                    "actions": character.actions,
+                                    "classes": character.classes,
+                                    "conditions": character.conditions,
+                                    "modifiers": character.modifiers
+                                };
                             }
-                            
+                    }
+                    break;
+                    case "spells":
+                    if (characterAPI[2] && characterAPI[2] == "known" && characterAPI[3] && characterAPI[3] == "add") {
+                        //entityTypeId
+                        //id
+                        //spellId
+                        
+                        idx = jsonspells[dataObj.characterClassId].findIndex(x=>x.id==dataObj.id&&x.entityTypeId==dataObj.entityTypeId&&x.definition.id==dataObj.spellId);
+                        if(idx>-1) {
+                            respObj.id = dataObj.characterId;
+                            respObj.data = jsonspells[dataObj.characterClassId][idx];
+                            idx2 = character.classSpells.findIndex(x=>x.characterClassId==dataObj.characterClassId);
+                            if (idx2>-1) {
+                                character.classSpells[idx2].spells.push(jsonspells[dataObj.characterClassId][idx]);
+                            }
                         }
-                        if (characterAPI[2] && characterAPI[2] == "known" && characterAPI[3] && characterAPI[3] == "remove") {
-                            idx = character.classSpells.findIndex(x=>x.characterClassId==dataObj.characterClassId);
+                        
+                    }
+                    if (characterAPI[2] && characterAPI[2] == "known" && characterAPI[3] && characterAPI[3] == "remove") {
+                        idx = character.classSpells.findIndex(x=>x.characterClassId==dataObj.characterClassId);
+                        idx2 = character.classSpells[idx].spells.findIndex(x=>x.id==dataObj.id&&x.entityTypeId==dataObj.entityTypeId&&x.definition.id==dataObj.spellId);
+                        if (idx2>-1) {
+                            character.classSpells[idx1].spells.splice(idx2,1);
+                        }
+                    }
+                    if (characterAPI[2] && characterAPI[2] == "known" && characterAPI[3] && characterAPI[3].endsWith("prepare")) {
+                        idx = character.classSpells.findIndex(x=>x.characterClassId==dataObj.characterClassId);
+                        if (idx>-1) {
                             idx2 = character.classSpells[idx].spells.findIndex(x=>x.id==dataObj.id&&x.entityTypeId==dataObj.entityTypeId&&x.definition.id==dataObj.spellId);
                             if (idx2>-1) {
-                                character.classSpells[idx1].spells.splice(idx2,1);
+                                character.classSpells[idx1].spells[idx2].prepared=characterAPI[3].startsWith("prepare");
                             }
                         }
-                        if (characterAPI[2] && characterAPI[2] == "known" && characterAPI[3] && characterAPI[3].endsWith("prepare")) {
-                            idx = character.classSpells.findIndex(x=>x.characterClassId==dataObj.characterClassId);
-                            if (idx>-1) {
-                                idx2 = character.classSpells[idx].spells.findIndex(x=>x.id==dataObj.id&&x.entityTypeId==dataObj.entityTypeId&&x.definition.id==dataObj.spellId);
-                                if (idx2>-1) {
-                                    character.classSpells[idx1].spells[idx2].prepared=characterAPI[3].startsWith("prepare");
-                                }
-                            }
-                        }
-                        if (characterAPI[2] && characterAPI[2] == "slot" && characterAPI[3] && characterAPI[3] == "use") {
-                            idx = character.spellSlots.findIndex(x=>x.level==dataObj.level);
-                            character.spellSlots[idx].used ++;
-                            if (character.spellSlots[idx].used < 0) character.spellSlots[idx].used = 0;
-                        }
-                        if (characterAPI[2] && characterAPI[2] == "slot" && characterAPI[3] && characterAPI[3] == "clear") {
-                            idx = character.spellSlots.findIndex(x=>x.level==dataObj.level);
-                            character.spellSlots[idx].used --;
-                            if (character.spellSlots[idx].used < 0) character.spellSlots[idx].used = 0;
-                        }
-                        break;
-                }
+                    }
+                    if (characterAPI[2] && characterAPI[2] == "slot" && characterAPI[3] && characterAPI[3] == "use") {
+                        idx = character.spellSlots.findIndex(x=>x.level==dataObj.level);
+                        character.spellSlots[idx].used ++;
+                        if (character.spellSlots[idx].used < 0) character.spellSlots[idx].used = 0;
+                    }
+                    if (characterAPI[2] && characterAPI[2] == "slot" && characterAPI[3] && characterAPI[3] == "clear") {
+                        idx = character.spellSlots.findIndex(x=>x.level==dataObj.level);
+                        character.spellSlots[idx].used --;
+                        if (character.spellSlots[idx].used < 0) character.spellSlots[idx].used = 0;
+                    }
+                    break;
             }
-            this.response = JSON.stringify(respObj);
-            this.responseText = JSON.stringify(respObj);
         }
+        this.response = JSON.stringify(respObj);
+        this.responseText = JSON.stringify(respObj);
         this.readyState = 4;
         this.onreadystatechange(4);
-    } else if (document.getElementById("character-sheet-target") && this._url.endsWith(document.getElementById("character-sheet-target").getAttribute("data-character-endpoint")) && typeof jsonfile !== 'undefined'){
+    } else if (typeof jsonfiles !== 'undefined'){
         Object.defineProperty(this,'readyState', { configurable: true, writable: true, });
         Object.defineProperty(this,'status', { configurable: true, writable: true, });
         Object.defineProperty(this,'statusText', { configurable: true, writable: true, });
@@ -537,98 +522,51 @@ var send_proto_repl = function send(data) {
         Object.defineProperty(this,'responseText', { configurable: true, writable: true, });
         Object.defineProperty(this,'responseURL', { configurable: true, writable: true, });
         Object.defineProperty(this,'responseType', { configurable: true, writable: true, });
-        this.status = 200;
-        this.statusText = "OK";
         if (this._url.startsWith("http")) {
             this.responseURL = this._url;
         } else {
             this.responseURL = document.location.protocol + "//" + document.location.host + this._url;
         }
-        this.response = jsonfile;
-        this.responseText = jsonfile;
-        this.onerror = null;
-        this.readyState = 4;
-        this.onreadystatechange(4);
-    } else if (document.getElementById("character-sheet-target") && this._url.startsWith(document.getElementById("character-sheet-target").getAttribute("data-character-service-base-url")) && typeof jsoncharsvc !== 'undefined'){
-        Object.defineProperty(this,'readyState', { configurable: true, writable: true, });
-        Object.defineProperty(this,'status', { configurable: true, writable: true, });
-        Object.defineProperty(this,'statusText', { configurable: true, writable: true, });
-        Object.defineProperty(this,'response', { configurable: true, writable: true, });
-        Object.defineProperty(this,'responseText', { configurable: true, writable: true, });
-        Object.defineProperty(this,'responseURL', { configurable: true, writable: true, });
-        Object.defineProperty(this,'responseType', { configurable: true, writable: true, });
-        this.status = 200;
-        this.statusText = "OK";
-        if (this._url.startsWith("http")) {
-            this.responseURL = this._url;
-        } else {
-            this.responseURL = document.location.protocol + "//" + document.location.host + this._url;
-        }
-        if (this._url.includes("vehicles/components?") && typeof jsonvehcomp !== 'undefined') {
-            this.response = jsonvehcomp;
-            this.responseText = jsonvehcomp;
-        } else if (this._url.includes("vehicles?") && typeof jsonvehsvc !== 'undefined') {
-            this.response = jsonvehsvc;
-            this.responseText = jsonvehsvc;
-        } else {
-            this.response = jsoncharsvc;
-            this.responseText = jsoncharsvc;
-        }
-        this.onerror = null;
-        this.readyState = 4;
-        this.onreadystatechange(4);
-    } else if (typeof jsoncharsvc !== 'undefined' && jsoncharsvc.definitions && jsoncharsvc.definitions.find(x=>x.type == "vehicle") && jsoncharsvc.definitions.find(x=>x.type == "vehicle").versions && jsoncharsvc.definitions.find(x=>x.type == "vehicle").versions.find(x=>this._url.startsWith(x.baseUrl+"/v"+x.version+"/")) && typeof jsonvehicle !== 'undefined') {
-        Object.defineProperty(this,'readyState', { configurable: true, writable: true, });
-        Object.defineProperty(this,'status', { configurable: true, writable: true, });
-        Object.defineProperty(this,'statusText', { configurable: true, writable: true, });
-        Object.defineProperty(this,'response', { configurable: true, writable: true, });
-        Object.defineProperty(this,'responseText', { configurable: true, writable: true, });
-        Object.defineProperty(this,'responseURL', { configurable: true, writable: true, });
-        Object.defineProperty(this,'responseType', { configurable: true, writable: true, });
-        this.status = 200;
-        this.statusText = "OK";
-        if (this._url.startsWith("http")) {
-            this.responseURL = this._url;
-        } else {
-            this.responseURL = document.location.protocol + "//" + document.location.host + this._url;
-        }
-        if (this._url.endsWith("/collection")) {
-            this.response = jsonvehicle;
-            this.responseText = jsonvehicle;
-        } else if (this._url.endsWith("/rule-data")) {
-            this.response = vehiclerules;
-            this.responseText = vehiclerules;
-        } else {
-            var vehicleID = this._url.substr(this._url.lastIndexOf("/")+1);
-            let respObj = {};
-            let idx = jsonvehicle.data.definitionData.findIndex(x=>x.id == vehicleID);
-            if (idx > -1) {
-                respObj.success = true;
-                respObj.message = "Success";
-                respObj.data = {
-                        "definitionData": jsonvehicle.data.definitionData[idx],
-                        "accessTypes": jsonvehicle.data.accessTypes[vehicleID]
-                };
-            } else {
-                respObj.statusCode = 404;
-                respObj.message = "Vehicle not found: " + vehicleID;
+        
+        for (var key in jsonfiles) {
+            if ((this._url.includes(key) && this._url.startsWith("https://character-service.")) || (this._url.includes("game-data/spells") && key == "spelllist_" + new URLSearchParams(this._url).get("classId")) || (this._url.endsWith(jsonfiles["characterjson"].data.id) && key == "characterjson") || this._url == key) {
+                this.status = 200;
+                this.statusText = "OK";
+                this.response = jsonfiles[key]
+                this.responseText = jsonfiles[key]
+                this.onerror = null;
+                this.readyState = 4;
+                this.onreadystatechange(4);
+                console.log("Using cache for " + key);
+                return;
             }
-	    this.response = JSON.stringify(respObj);
-            this.responseText = JSON.stringify(respObj);
         }
-        this.onerror = null;
-        this.readyState = 4;
-        this.onreadystatechange(4);
+        if (this._url == "/warning-acknowledgement/get.json") {
+            this.status = 200;
+            this.statusText = "OK";
+            this.response = ""
+            this.responseText = ""
+            this.onerror = null;
+            this.readyState = 4;
+            this.onreadystatechange(4);
+            console.log("Using cache for " + key);
+            return;
+        }
+        console.log(this)
     }
     call.url = this._url;
     call.data = data;
+    if (this._method) {
+        call.method = this._method;
+    }
     storedCalls.push(call);
     
     handleOfflineAPI(storedCalls);
 };
 var send_proto_repl2 = function send(data) {
     if (this._url) {
-        if (typeof jsoncharsvc !== 'undefined' && jsoncharsvc.definitions && jsoncharsvc.definitions.find(x=>x.type == "vehicle") && jsoncharsvc.definitions.find(x=>x.type == "vehicle").versions && jsoncharsvc.definitions.find(x=>x.type == "vehicle").versions.find(x=>this._url.startsWith(x.baseUrl+"/v"+x.version+"/")) && typeof jsonvehicle !== 'undefined' && typeof vehiclerules !== 'undefined') {
+        if (typeof jsonfiles !== 'undefined') {
+            console.log("Checking cache")
             Object.defineProperty(this,'readyState', { configurable: true, writable: true, });
             Object.defineProperty(this,'status', { configurable: true, writable: true, });
             Object.defineProperty(this,'statusText', { configurable: true, writable: true, });
@@ -636,105 +574,23 @@ var send_proto_repl2 = function send(data) {
             Object.defineProperty(this,'responseText', { configurable: true, writable: true, });
             Object.defineProperty(this,'responseURL', { configurable: true, writable: true, });
             Object.defineProperty(this,'responseType', { configurable: true, writable: true, });
-            this.status = 200;
-            this.statusText = "OK";
             if (this._url.startsWith("http")) {
                 this.responseURL = this._url;
             } else {
                 this.responseURL = document.location.protocol + "//" + document.location.host + this._url;
             }
-            if (this._url.endsWith("/collection")) {
-                this.response = jsonvehicle;
-                this.responseText = jsonvehicle;
-            } else if (this._url.endsWith("/rule-data")) {
-                this.response = vehiclerules;
-                this.responseText = vehiclerules;
-            } else {
-                var vehicleID = this._url.substr(this._url.lastIndexOf("/")+1);
-                respObj = {};
-                idx = jsonvehicle.data.definitionData.findIndex(x=>x.id == vehicleID);
-                if (idx > -1) {
-                    respObj.success = true;
-                    respObj.message = "Success";
-                    respObj.data = {
-                            "definitionData": jsonvehicle.data.definitionData[idx],
-                            "accessTypes": jsonvehicle.data.accessTypes[vehicleID]
-                    };
-                } else {
-                    respObj.statusCode = 404;
-                    respObj.message = "Vehicle not found: " + vehicleID;
+            for (var key in jsonfiles) {
+                if ((this._url.includes(key) && this._url.startsWith("https://character-service.")) || (this._url.includes("game-data/spells") && key == "spelllist_" + new URLSearchParams(this._url).get("classId")) || (this._url.endsWith(jsonfiles["characterjson"].data.id) && key == "characterjson") || this._url == key) {
+                    this.status = 200;
+                    this.statusText = "OK";
+                    this.response = jsonfiles[key]
+                    this.responseText = jsonfiles[key]
+                    this.onerror = null;
+                    this.readyState = 4;
+                    this.onreadystatechange(4);
+                    console.log("Using cache for " + key);
+                    return;
                 }
-            }
-            this.onerror = null;
-            this.readyState = 4;
-            this.onreadystatechange(4);
-            return;
-        } else if (this._url.startsWith("/api/equipment/list/json") && typeof jsonequip !== 'undefined') {
-            Object.defineProperty(this,'readyState', { configurable: true, writable: true, });
-            Object.defineProperty(this,'status', { configurable: true, writable: true, });
-            Object.defineProperty(this,'statusText', { configurable: true, writable: true, });
-            Object.defineProperty(this,'response', { configurable: true, writable: true, });
-            Object.defineProperty(this,'responseText', { configurable: true, writable: true, });
-            Object.defineProperty(this,'responseURL', { configurable: true, writable: true, });
-            Object.defineProperty(this,'responseType', { configurable: true, writable: true, });
-            this.status = 200;
-            this.statusText = "OK";
-            if (this._url.startsWith("http")) {
-                this.responseURL = this._url;
-            } else {
-                this.responseURL = document.location.protocol + "//" + document.location.host + this._url;
-            }
-            this.response = jsonequip;
-            this.responseText = jsonequip;
-            this.onerror = null;
-            this.readyState = 4;
-            this.onreadystatechange(4);
-            return;
-        } else if (this._url.startsWith("/api/monsters") && typeof jsonmonster !== 'undefined') {
-            Object.defineProperty(this,'readyState', { configurable: true, writable: true, });
-            Object.defineProperty(this,'status', { configurable: true, writable: true, });
-            Object.defineProperty(this,'statusText', { configurable: true, writable: true, });
-            Object.defineProperty(this,'response', { configurable: true, writable: true, });
-            Object.defineProperty(this,'responseText', { configurable: true, writable: true, });
-            Object.defineProperty(this,'responseURL', { configurable: true, writable: true, });
-            Object.defineProperty(this,'responseType', { configurable: true, writable: true, });
-            this.status = 200;
-            this.statusText = "OK";
-            if (this._url.startsWith("http")) {
-                this.responseURL = this._url;
-            } else {
-                this.responseURL = document.location.protocol + "//" + document.location.host + this._url;
-            }
-            this.response = jsonmonster;
-            this.responseText = jsonmonster;
-            this.onerror = null;
-            this.readyState = 4;
-            this.onreadystatechange(4);
-            return;
-        } else if (this._url.startsWith("/api/spells/list/json") && typeof jsonspells !== 'undefined') {
-            var qregex = /(characterClassId)=?([^&]*)/;
-            var qmatch = qregex.exec(this._url);
-            if (qmatch && qmatch[2] && jsonspells[qmatch[2]]) {
-                Object.defineProperty(this,'readyState', { configurable: true, writable: true, });
-                Object.defineProperty(this,'status', { configurable: true, writable: true, });
-                Object.defineProperty(this,'statusText', { configurable: true, writable: true, });
-                Object.defineProperty(this,'response', { configurable: true, writable: true, });
-                Object.defineProperty(this,'responseText', { configurable: true, writable: true, });
-                Object.defineProperty(this,'responseURL', { configurable: true, writable: true, });
-                Object.defineProperty(this,'responseType', { configurable: true, writable: true, });
-                this.status = 200;
-                this.statusText = "OK";
-                if (this._url.startsWith("http")) {
-                    this.responseURL = this._url;
-                } else {
-                    this.responseURL = document.location.protocol + "//" + document.location.host + this._url;
-                }
-                this.response = jsonspells[qmatch[2]];
-                this.responseText = jsonspells[qmatch[2]];
-                this.onerror = null;
-                this.readyState = 4;
-                this.onreadystatechange(4);
-                return;
             }
         }
     }

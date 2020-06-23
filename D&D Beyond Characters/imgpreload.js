@@ -215,69 +215,7 @@ var allImages = [
                  "https://www.dndbeyond.com/Content/Skins/Waterdeep/images/sprites/charsheet-atlas.svg",
                  "https://www.dndbeyond.com/Content/Skins/Waterdeep/images/sprites/currency-sprite.png",
                  "https://www.dndbeyond.com/Content/Skins/Waterdeep/images/sprites/plus_minus-disabled.svg",
-                 "https://www.dndbeyond.com/Content/Skins/Waterdeep/images/sprites/plus_minus-white.svg",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/attunement.png",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/conditions/blinded.svg",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/conditions/charmed.svg",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/conditions/deafened.svg",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/conditions/frightened.svg",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/conditions/grappled.svg",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/conditions/incapacitated.svg",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/conditions/invisible.svg",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/conditions/paralyzed.svg",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/conditions/petrified.svg",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/conditions/poisoned.svg",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/conditions/prone.svg",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/conditions/restrained.svg",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/conditions/stunned.svg",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/conditions/unconscious.svg",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/conditions/exhaustion.svg",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/conditions/paralyzed.svg",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/areas_of_effect/sphere.svg",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/areas_of_effect/cone.svg",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/areas_of_effect/cube.svg",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/damage_types/fire.svg",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/damage_types/force.svg",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/damage_types/psychic.svg",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/damage_types/cold.svg",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/damage_types/poison.svg",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/damage_types/necrotic.svg",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/damage_types/bludgeoning.svg",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/damage_types/slashing.svg",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/damage_types/piercing.svg",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/core_mechanics/concentration.svg",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/core_mechanics/ritual.svg",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/attunement.png",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/conditions/blinded.svg",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/conditions/charmed.svg",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/conditions/deafened.svg",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/conditions/frightened.svg",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/conditions/grappled.svg",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/conditions/incapacitated.svg",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/conditions/invisible.svg",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/conditions/paralyzed.svg",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/conditions/petrified.svg",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/conditions/poisoned.svg",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/conditions/prone.svg",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/conditions/restrained.svg",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/conditions/stunned.svg",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/conditions/unconscious.svg",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/conditions/exhaustion.svg",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/conditions/paralyzed.svg",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/areas_of_effect/sphere.svg",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/areas_of_effect/cone.svg",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/areas_of_effect/cube.svg",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/damage_types/fire.svg",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/damage_types/force.svg",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/damage_types/psychic.svg",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/damage_types/cold.svg",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/damage_types/poison.svg",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/damage_types/necrotic.svg",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/damage_types/bludgeoning.svg",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/damage_types/slashing.svg",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/damage_types/piercing.svg",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/core_mechanics/concentration.svg",
-                 "https://www.dndbeyond.com" + Cobalt.Constants.SkinPath + "/images/icons/core_mechanics/ritual.svg"
+                 "https://www.dndbeyond.com/Content/Skins/Waterdeep/images/sprites/plus_minus-white.svg"
                  ];
 
 var allSheets = document.styleSheets;
@@ -355,50 +293,50 @@ var uniqueImgs = [];
 $.each(allImages, function(i, el){
    if($.inArray(el, uniqueImgs) === -1 && el) {
        // These images always fail, remove them
-       if (!el.endsWith("/Skins/images/markitup/menu.png") &&
-           !el.endsWith("/Skins/images/markitup/submenu.png") &&
-           !el.endsWith("/Skins/Waterdeep/images/ui/grippie.png") &&
-           !el.endsWith("/Skins/Waterdeep/images/icons/16x16/vanity-icon-staff.png") &&
-           !el.endsWith("/Skins/Blocks/images/icons/twitch/twitchlogo.png") &&
-           !el.endsWith("/Skins/Blocks/images/icons/twitch/glitch-white.png") &&
-           !el.endsWith("/Skins/Waterdeep/images/logo.png") &&
-           !el.endsWith("/Skins/Global/images/ui/remove3.png") &&
-           !el.endsWith("/Skins/Waterdeep/images/sourcepoint-logo.png") &&
-           !el.endsWith("/Skins/Blocks/images/icons/16x16/grey/icon-moderator-arrow-down.png") &&
-           !el.endsWith("/Skins/Waterdeep/images/logo-home.png") &&
-           !el.endsWith("/Skins/Waterdeep/images/responsive-login-logo.svg") &&
-           !el.endsWith("/Skins/Waterdeep/css/images/ui-icons_444444_256x240.png") &&
-           !el.endsWith("/Skins/Waterdeep/css/images/ui-icons_555555_256x240.png") &&
-           !el.endsWith("/Skins/Waterdeep/css/images/ui-icons_ffffff_256x240.png") &&
-           !el.endsWith("/Skins/Waterdeep/css/images/ui-icons_777620_256x240.png") &&
-           !el.endsWith("/Skins/Waterdeep/css/images/ui-icons_cc0000_256x240.png") &&
-           !el.endsWith("/Skins/Waterdeep/css/images/ui-icons_777777_256x240.png") &&
-           !el.endsWith("/Skins/Waterdeep/images/ui/ajax-loader-light.gif") &&
-           !el.endsWith("/Skins/Waterdeep/images/icons/classes/barbarian.png") &&
-           !el.endsWith("/Skins/Waterdeep/images/icons/classes/fighter.png") &&
-           !el.endsWith("/Skins/Waterdeep/images/icons/classes/monk.png") &&
-           !el.endsWith("/Skins/Waterdeep/images/icons/classes/rogue.png") &&
-           !el.endsWith("/Skins/Waterdeep/images/icons/item_types/artifact.jpg") &&
-           !el.endsWith("/Skins/Waterdeep/images/sprites/plus_minus-spells.svg") &&
-           !el.endsWith("/Skins/Waterdeep/images/icons/conditions/exhausted.svg") &&
-           !el.endsWith("/Skins/Waterdeep/images/icons/classes/barbarian_icon@2x.png") &&
-           !el.endsWith("/Skins/Waterdeep/images/icons/classes/fighter_icon@2x.png") &&
-           !el.endsWith("/Skins/Waterdeep/images/icons/classes/monk_icon@2x.png") &&
-           !el.endsWith("/Skins/Waterdeep/images/icons/classes/rogue_icon@2x.png") &&
-           !el.endsWith("/Skins/Waterdeep/images/icons/monsters/aberration_icon.jpg") &&
-           !el.endsWith("/Skins/Waterdeep/images/icons/monsters/beast_icon.jpg") &&
-           !el.endsWith("/Skins/Waterdeep/images/icons/monsters/celestial_icon.jpg") &&
-           !el.endsWith("/Skins/Waterdeep/images/icons/monsters/construct_icon.jpg") &&
-           !el.endsWith("/Skins/Waterdeep/images/icons/monsters/dragon_icon.jpg") &&
-           !el.endsWith("/Skins/Waterdeep/images/icons/monsters/elemental_icon.jpg") &&
-           !el.endsWith("/Skins/Waterdeep/images/icons/monsters/fey_icon.jpg") &&
-           !el.endsWith("/Skins/Waterdeep/images/icons/monsters/fiend_icon.jpg") &&
-           !el.endsWith("/Skins/Waterdeep/images/icons/monsters/giant_icon.jpg") &&
-           !el.endsWith("/Skins/Waterdeep/images/icons/monsters/humanoid_icon.jpg") &&
-           !el.endsWith("/Skins/Waterdeep/images/icons/monsters/monstrosity_icon.jpg") &&
-           !el.endsWith("/Skins/Waterdeep/images/icons/monsters/ooze_icon.jpg") &&
-           !el.endsWith("/Skins/Waterdeep/images/icons/monsters/plant_icon.jpg") &&
-           !el.endsWith("/Skins/Waterdeep/images/icons/monsters/undead_icon.jpg")
+       if (!el.toLowerCase().endsWith("/skins/images/markitup/menu.png") &&
+           !el.toLowerCase().endsWith("/skins/images/markitup/submenu.png") &&
+           !el.toLowerCase().endsWith("/skins/waterdeep/images/ui/grippie.png") &&
+           !el.toLowerCase().endsWith("/skins/waterdeep/images/icons/16x16/vanity-icon-staff.png") &&
+           !el.toLowerCase().endsWith("/skins/blocks/images/icons/twitch/twitchlogo.png") &&
+           !el.toLowerCase().endsWith("/skins/blocks/images/icons/twitch/glitch-white.png") &&
+           !el.toLowerCase().endsWith("/skins/waterdeep/images/logo.png") &&
+           !el.toLowerCase().endsWith("/skins/global/images/ui/remove3.png") &&
+           !el.toLowerCase().endsWith("/skins/waterdeep/images/sourcepoint-logo.png") &&
+           !el.toLowerCase().endsWith("/skins/blocks/images/icons/16x16/grey/icon-moderator-arrow-down.png") &&
+           !el.toLowerCase().endsWith("/skins/waterdeep/images/logo-home.png") &&
+           !el.toLowerCase().endsWith("/skins/waterdeep/images/responsive-login-logo.svg") &&
+           !el.toLowerCase().endsWith("/skins/waterdeep/css/images/ui-icons_444444_256x240.png") &&
+           !el.toLowerCase().endsWith("/skins/waterdeep/css/images/ui-icons_555555_256x240.png") &&
+           !el.toLowerCase().endsWith("/skins/waterdeep/css/images/ui-icons_ffffff_256x240.png") &&
+           !el.toLowerCase().endsWith("/skins/waterdeep/css/images/ui-icons_777620_256x240.png") &&
+           !el.toLowerCase().endsWith("/skins/waterdeep/css/images/ui-icons_cc0000_256x240.png") &&
+           !el.toLowerCase().endsWith("/skins/waterdeep/css/images/ui-icons_777777_256x240.png") &&
+           !el.toLowerCase().endsWith("/skins/waterdeep/images/ui/ajax-loader-light.gif") &&
+           !el.toLowerCase().endsWith("/skins/waterdeep/images/icons/classes/barbarian.png") &&
+           !el.toLowerCase().endsWith("/skins/waterdeep/images/icons/classes/fighter.png") &&
+           !el.toLowerCase().endsWith("/skins/waterdeep/images/icons/classes/monk.png") &&
+           !el.toLowerCase().endsWith("/skins/waterdeep/images/icons/classes/rogue.png") &&
+           !el.toLowerCase().endsWith("/skins/waterdeep/images/icons/item_types/artifact.jpg") &&
+           !el.toLowerCase().endsWith("/skins/waterdeep/images/sprites/plus_minus-spells.svg") &&
+           !el.toLowerCase().endsWith("/skins/waterdeep/images/icons/conditions/exhausted.svg") &&
+           !el.toLowerCase().endsWith("/skins/waterdeep/images/icons/classes/barbarian_icon@2x.png") &&
+           !el.toLowerCase().endsWith("/skins/waterdeep/images/icons/classes/fighter_icon@2x.png") &&
+           !el.toLowerCase().endsWith("/skins/waterdeep/images/icons/classes/monk_icon@2x.png") &&
+           !el.toLowerCase().endsWith("/skins/waterdeep/images/icons/classes/rogue_icon@2x.png") &&
+           !el.toLowerCase().endsWith("/skins/waterdeep/images/icons/monsters/aberration_icon.jpg") &&
+           !el.toLowerCase().endsWith("/skins/waterdeep/images/icons/monsters/beast_icon.jpg") &&
+           !el.toLowerCase().endsWith("/skins/waterdeep/images/icons/monsters/celestial_icon.jpg") &&
+           !el.toLowerCase().endsWith("/skins/waterdeep/images/icons/monsters/construct_icon.jpg") &&
+           !el.toLowerCase().endsWith("/skins/waterdeep/images/icons/monsters/dragon_icon.jpg") &&
+           !el.toLowerCase().endsWith("/skins/waterdeep/images/icons/monsters/elemental_icon.jpg") &&
+           !el.toLowerCase().endsWith("/skins/waterdeep/images/icons/monsters/fey_icon.jpg") &&
+           !el.toLowerCase().endsWith("/skins/waterdeep/images/icons/monsters/fiend_icon.jpg") &&
+           !el.toLowerCase().endsWith("/skins/waterdeep/images/icons/monsters/giant_icon.jpg") &&
+           !el.toLowerCase().endsWith("/skins/waterdeep/images/icons/monsters/humanoid_icon.jpg") &&
+           !el.toLowerCase().endsWith("/skins/waterdeep/images/icons/monsters/monstrosity_icon.jpg") &&
+           !el.toLowerCase().endsWith("/skins/waterdeep/images/icons/monsters/ooze_icon.jpg") &&
+           !el.toLowerCase().endsWith("/skins/waterdeep/images/icons/monsters/plant_icon.jpg") &&
+           !el.toLowerCase().endsWith("/skins/waterdeep/images/icons/monsters/undead_icon.jpg")
            ) {
                 uniqueImgs.push(el);
             }
@@ -414,11 +352,8 @@ $.each(allImages, function(i, el){
        document.head.appendChild(_linkTag);
        });
 
-var dataTarget = document.getElementById("character-sheet-target");
+var dataTarget = document.getElementById("character-tools-target");
 if (dataTarget) {
-    var ddbtoken = dataTarget.getAttribute("data-token");
-    var ddbuser = dataTarget.getAttribute("data-username");
-    var ddbchID = dataTarget.getAttribute("data-character-id");
     var resources = window.performance.getEntriesByType("resource");
     var resourceURLS = [];
     //resourceURLS.push("username=" + ddbuser + "&characterId=" + ddbchID + "&csrfToken=" + ddbtoken);
@@ -432,7 +367,6 @@ if (dataTarget) {
                         uniqueRes.push(el);
             }
            });
-    uniqueRes.unshift("username=" + ddbuser + "&characterId=" + ddbchID + "&csrfToken=" + ddbtoken);
     uniqueRes;
 } else {
     [];

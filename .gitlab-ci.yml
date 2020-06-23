@@ -1,0 +1,8 @@
+stages:
+ - build
+
+build_proj:
+ stage: build
+ script:
+  - xcodebuild clean -project "D&D Beyond Characters.xcodeproj" -scheme "D&D Beyond Characters"
+  - xcodebuild archive -project "D&D Beyond Characters.xcodeproj" -scheme "D&D Beyond Characters"
