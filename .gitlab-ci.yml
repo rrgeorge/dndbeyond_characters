@@ -1,13 +1,9 @@
 stages:
  - build
 
-before_script:
- - gem install bundler
- - bundle install
-
 build_proj:
  stage: build
  script:
-  - fastlane beta
+  - /usr/local/bin/fastlane beta
  # - xcodebuild clean -project "D&D Beyond Characters.xcodeproj" -scheme "D&D Beyond Characters"
  # - xcodebuild archive -project "D&D Beyond Characters.xcodeproj" -scheme "D&D Beyond Characters"
