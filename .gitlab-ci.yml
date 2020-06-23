@@ -3,7 +3,8 @@ stages:
 
 build_proj:
  stage: build
+ tags:
+  - xcode
  script:
-  - /usr/local/bin/fastlane beta
- # - xcodebuild clean -project "D&D Beyond Characters.xcodeproj" -scheme "D&D Beyond Characters"
- # - xcodebuild archive -project "D&D Beyond Characters.xcodeproj" -scheme "D&D Beyond Characters"
+  - xcodebuild clean -project "D&D Beyond Characters.xcodeproj" -scheme "D&D Beyond Characters"
+  - xcodebuild archive -project "D&D Beyond Characters.xcodeproj" -scheme "D&D Beyond Characters"
