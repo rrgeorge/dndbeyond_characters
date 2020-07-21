@@ -41,6 +41,7 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
     var _cobaltExpires: Date?
     var _csrfToken: String?
     var _ddbUser: String?
+    var characterName: String
     var modifiers = [modifier]()
     var queuedAPICalls = [apiCall]()
     var reachability: Reachability?
@@ -61,6 +62,7 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
         contentController.add(self,name: "captureCall")
         contentController.add(self,name: "navFunction")
         contentController.add(self,name: "apiCall")
+        contentController.add(self,name: "sendRoll")
         webConfiguration.userContentController = contentController
 
         webView = WKWebView(frame: .zero, configuration: webConfiguration)
@@ -924,7 +926,7 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
 
     func sendToE(_ formula: String,_ rolled: Int,_ rolledString: String = "", _ rolltype: String? = nil,_ name: String) {
         let data = [
-            "source": "Test",
+            "source": self.characterName,
             "type": "roll",
             "content": [
                 "formula": formula,
@@ -974,7 +976,7 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
     
     func sendMessageToE(_ message: String) {
         let data = [
-            "source": "Test",
+            "source": self.characterName,
             "type": "message",
             "content": message
             ] as [String : Any]
@@ -1159,6 +1161,7 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
                         ]
                         if let charJSON = try JSONSerialization.jsonObject(with: contents.data(using: .utf8)!, options:[] ) as? [String: Any] {
                             if let charObj = charJSON["data"] as? [String: Any] {
+                                self.characterName = charObj["name"] as! String
                                 let prefs = charObj["preferences"] as! [String: Any]
                                 sharingType = prefs["sharingType"] as! Int
                                 if let campaign = charObj["campaign"] as? [String: Any] {
@@ -1900,6 +1903,43 @@ extension ViewController: WKScriptMessageHandler {
         //this one works
         if message.name == "captureCall" {
             print(message.body)
+        } else if message.name == "sendRoll" {
+            let defaults = UserDefaults.standard
+            let remoteHost = defaults.string(forKey: "remoteHost") ?? ""
+            if remoteHost.hasPrefix("http") {
+                let url = URL(string: remoteHost)!
+                let session = URLSession.shared
+                var request = URLRequest(url: url.appendingPathComponent("/api/messages"))
+                request.httpMethod = "POST"
+                do {
+                    request.httpBody = message.body.data(using: String.Encoding.utf8)
+                } catch let error {
+                    print("Error with json")
+                    print(error.localizedDescription)
+                }
+                request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+                request.addValue("application/json", forHTTPHeaderField: "Accept")
+                let task = session.dataTask(with: request, completionHandler: { data, response, error in
+                    guard error == nil else {
+                        return
+                    }
+
+                    guard let data = data else {
+                        return
+                    }
+
+                    do {
+                        //create json object from data
+                        guard let json = try JSONSerialization.jsonObject(with: data, options: .mutableContainers) as? [String: Any] else {
+                            return
+                        }
+                        //print(json)
+                    } catch let error {
+                        print(error.localizedDescription)
+                    }
+                })
+                task.resume()
+            }
         } else if message.name == "navFunction" {
             if message.body as? String == "GoHome" {
                 returnHome()

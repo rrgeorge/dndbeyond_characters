@@ -645,7 +645,7 @@ window.addEventListener('online', updateOnlineStatus, false);
 updateOnlineStatus();
 var config = { attributes: true, childList: true, subtree: true };
 
-var callback = function(mutationsList, observer) {
+var callback = function(mutation, observer) {
     
     var siteBar = document.getElementsByClassName('site-bar');
     var siteHeader = document.getElementsByClassName('main');
@@ -762,48 +762,44 @@ var callback = function(mutationsList, observer) {
             }
         }
     }
+
+    	for (let i=0;i<mutation.length;i++) {
+		for (let m=0;m<mutation[i].addedNodes.length;m++) {		
+			var results = mutation[i].addedNodes[m].getElementsByClassName('dice_result');
+			if (results.length > 0) {
+				let character_name = document.getElementsByClassName('ddbc-character-name')[0].textContent;
+				let latest_roll = results[results.length - 1];
+				let roll_title = latest_roll.getElementsByClassName('dice_result__info__rolldetail')[0].textContent.split(':')[0];
+				let roll_notation = latest_roll.getElementsByClassName('dice_result__info__dicenotation')[0].textContent;
+				let roll_breakdown = latest_roll.getElementsByClassName('dice_result__info__breakdown')[0].textContent;
+				let roll_total = latest_roll.getElementsByClassName('dice_result__total-result')[0].textContent;
+				let roll_type = latest_roll.getElementsByClassName('dice_result__rolltype')[0].textContent;
+				let rolljson = {
+								"source": character_name,
+								"type":	"roll",
+								"content": {
+										"formula": roll_notation,
+										"result": Number(roll_total),
+										"detail": roll_breakdown,
+										"name":	roll_title
+								}
+						};
+				if (roll_type != "roll") {
+					if (roll_type == "to hit") {
+						rolljson.content.type = "attack";
+					} else {
+						rolljson.content.type = roll_type;
+					}
+				}
+				if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.sendRoll) {
+                                            window.webkit.messageHandlers.sendRoll.postMessage(JSON.stringify(rolljson));
+                                          }
+				return;
+  		}
+		}
+	}
 };
 callback.call();
 setTimeout(500,callback.call());
 var observer = new MutationObserver(callback);
 observer.observe(document, config);
-$( document ).ready(function(){
-if (document.getElementById('filter-name') && document.getElementById('filter-classes') && document.getElementById('filter-race') && document.getElementById('filter-level')) {
-    var livefilter = function(){
-        var filtername = document.getElementById('filter-name').value.toLowerCase();
-        var filterclasses = document.getElementById('filter-classes').value.toLowerCase();
-        var filterrace = document.getElementById('filter-race').value.toLowerCase();
-        var filterlevel = document.getElementById('filter-level').value.toLowerCase();
-
-        var cards = document.getElementsByClassName("ddb-campaigns-character-card");
-        for (let i=0;i<cards.length;i++){
-                let name = cards[i].getElementsByClassName("ddb-campaigns-character-card-header-upper-character-info-primary")[0].innerText.toLowerCase();
-                let subparts = cards[i].getElementsByClassName("ddb-campaigns-character-card-header-upper-character-info-secondary")[0].innerText.split(" | ");
-                let level = subparts[0].toLowerCase();
-                let race = subparts[1].toLowerCase();
-                let classes = subparts[2].toLowerCase();
-                if (name.includes(filtername) && level.includes(filterlevel) && race.includes(filterrace) && classes.includes(filterclasses)) {
-                    cards[i].parentNode.style.display="";
-                } else {
-                    cards[i].parentNode.style.display="none";
-                }
-        }
-    };
-    document.getElementById('filter-name').addEventListener('keyup',livefilter);
-    document.getElementById('filter-race').addEventListener('keyup',livefilter);
-    document.getElementById('filter-level').addEventListener('keyup',livefilter);
-    document.getElementById('filter-classes').addEventListener('keyup',livefilter);
-    let thisURL = new URL(document.location.href);
-    if (thisURL.searchParams.has("filter-name")) document.getElementById('filter-name').value = thisURL.searchParams.get("filter-name");
-    if (thisURL.searchParams.has("filter-classes")) document.getElementById('filter-classes').value = thisURL.searchParams.get("filter-classes");
-    if (thisURL.searchParams.has("filter-race")) document.getElementById('filter-race').value = thisURL.searchParams.get("filter-race");
-    if (thisURL.searchParams.has("filter-level")) document.getElementById('filter-level').value = thisURL.searchParams.get("filter-level");
-    livefilter();
-    var searchForm = document.getElementById("homebrew-creations-search-form");
-    if (searchForm) {
-        searchForm.action="javascript:void(0);";
-        $("#homebrew-creations-search-form").off('submit');
-        $("#homebrew-creations-search-form").on("submit",livefilter);
-    }
-}
-});
