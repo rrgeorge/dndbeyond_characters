@@ -42,6 +42,7 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
     var _csrfToken: String?
     var _ddbUser: String?
     var characterName: String = "D&D Beyond"
+    var characterColor: String = "f00"
     var modifiers = [modifier]()
     var queuedAPICalls = [apiCall]()
     var reachability: Reachability?
@@ -936,6 +937,7 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
     func sendToE(_ formula: String,_ rolled: Int,_ rolledString: String = "", _ rolltype: String? = nil,_ name: String) {
         let data = [
             "source": self.characterName,
+            "color": self.characterColor,
             "type": "roll",
             "content": [
                 "formula": formula,
@@ -986,6 +988,7 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
     func sendMessageToE(_ message: String) {
         let data = [
             "source": self.characterName,
+            "color": self.characterColor,
             "type": "chat",
             "content": message
             ] as [String : Any]
@@ -1171,6 +1174,9 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
                         if let charJSON = try JSONSerialization.jsonObject(with: contents.data(using: .utf8)!, options:[] ) as? [String: Any] {
                             if let charObj = charJSON["data"] as? [String: Any] {
                                 self.characterName = charObj["name"] as! String
+                                if let theme = charObj["themeColor"] as? [String: Any] {
+                                    self.characterColor = theme["themeColor"] as String ?? "f00"
+                                }
                                 let prefs = charObj["preferences"] as! [String: Any]
                                 sharingType = prefs["sharingType"] as! Int
                                 if let campaign = charObj["campaign"] as? [String: Any] {
