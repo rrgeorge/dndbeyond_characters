@@ -41,7 +41,7 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
     var _cobaltExpires: Date?
     var _csrfToken: String?
     var _ddbUser: String?
-    var characterName: String
+    var characterName: String = "D&D Beyond"
     var modifiers = [modifier]()
     var queuedAPICalls = [apiCall]()
     var reachability: Reachability?
@@ -1912,7 +1912,7 @@ extension ViewController: WKScriptMessageHandler {
                 var request = URLRequest(url: url.appendingPathComponent("/api/messages"))
                 request.httpMethod = "POST"
                 do {
-                    request.httpBody = message.body.data(using: String.Encoding.utf8)
+                    request.httpBody = (message.body as! String).data(using: String.Encoding.utf8)
                 } catch let error {
                     print("Error with json")
                     print(error.localizedDescription)
