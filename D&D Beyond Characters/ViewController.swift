@@ -914,12 +914,12 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
     func sendToE(_ rolled: int,_ rolledString: String? = "") {
 						
         let data = [
-            "source": "Test"
-            "type": "roll"
+            "source": "Test",
+            "type": "roll",
             "content": [
-                "result": rolled
-                "detail": rolledString
-                "name": "test"
+                "result": rolled,
+                "detail": rolledString,
+                "name": "test",
                 "type": "roll"
                 ]
             ]
