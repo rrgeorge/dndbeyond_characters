@@ -751,6 +751,11 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
         rollDialog.addAction(UIAlertAction(title: "Thanks!", style: UIAlertAction.Style.default, handler: nil))
         rollDialog.view.addSubview(UIView())
         rollDialog.popoverPresentationController?.sourceView = self.view
+        let defaults = UserDefaults.standard
+        let remoteHost = defaults.string(forKey: "remoteHost") ?? ""
+        if remoteHost.hasPrefix("http") {
+            sendToE(rolled,rolledString)
+        }
         self.present(rollDialog, animated: true, completion: nil)
     }
     
@@ -906,6 +911,73 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
         
     }
 
+    func sendToE(_ rolled: int,_ rolledString: String? = "") {
+						
+		struct rollcontent : Codable {
+            let formula: String?
+            let result: Int
+            let detail: String?
+            let name: String?
+            let type: String?
+        }
+    
+        struct jsonroll : Codable {
+            let source: String?
+            let type: String?
+            let content: rollcontent
+        }
+        
+        let data = jsonroll()
+        data.content = rollcontent()
+        data.source = "Test"
+        data.type = "roll"
+        data.content.result = rolled
+        data.content.detail = rolledString
+        data.content.name = "test"
+        data.content.type = "roll"
+        
+        let defaults = UserDefaults.standard
+        let remoteHost = defaults.string(forKey: "remoteHost") ?? ""
+        if remoteHost.hasPrefix("http") {
+            let url = URL(string: remoteHost)!
+            let session = URLSession.shared
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            do {
+                request.httpBody = try JSONSerialization.data(withJSONObject: parameters, options: .prettyPrinted) // pass dictionary to data object and set it as request body
+            } catch let error {
+                print(error.localizedDescription)
+                completion(nil, error)
+            }
+            request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.addValue("application/json", forHTTPHeaderField: "Accept")
+            let task = session.dataTask(with: request, completionHandler: { data, response, error in
+                guard error == nil else {
+                    completion(nil, error)
+                    return
+                }
+
+                guard let data = data else {
+                    completion(nil, NSError(domain: "dataNilError", code: -100001, userInfo: nil))
+                    return
+                }
+
+                do {
+                    //create json object from data
+                    guard let json = try JSONSerialization.jsonObject(with: data, options: .mutableContainers) as? [String: Any] else {
+                        completion(nil, NSError(domain: "invalidJSONTypeError", code: -100009, userInfo: nil))
+                        return
+                    }
+                    print(json)
+                    completion(json, nil)
+                } catch let error {
+                    print(error.localizedDescription)
+                    completion(nil, error)
+                }
+            })
+            task.resume()
+        }
+    }
     
     func saveCurrentURL(theURL: String? = "") {
         if let myURL = URL(string:theURL ?? "https://www.dndbeyond.com/my-characters") {
