@@ -404,9 +404,12 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
         } else {
             dieRoll = "You rolled " + String(rolled + mod)
         }
+        var modstr = ""
         if mod > 0 {
+            modstr = String(format:" + %d",mod)
             dieRoll += "\n" + "(Rolled: " + String(rolled) + " + " + String(mod) + ")"
         } else if mod < 0 {
+            modstr = String(format:" - %d",abs(mod))
             dieRoll += "\n" + "(Rolled: " + String(rolled) + String(mod) + ")"
         }
         let rollDialog = UIAlertController(title: roll, message: dieRoll,preferredStyle: .alert)
@@ -414,11 +417,11 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
         rollDialog.view.addSubview(UIView())
         rollDialog.popoverPresentationController?.sourceView = self.view
         if roll.hasSuffix("Save") {
-            sendToE(String(format: "%dd%d%+d",1,20,mod),rolled+mod,String(format: "(%d) %+d",rolled, mod),"save",String(roll.dropLast(5)))
+            sendToE(String(format: "%dd%d%+d",1,20,mod),rolled+mod,String(format: "(%d)%@",rolled, modstr),"save",String(roll.dropLast(5)))
         } else if roll.hasSuffix("Check") {
-        sendToE(String(format: "%dd%d%+d",1,20,mod),rolled+mod,String(format: "(%d) %+d",rolled, mod),"check",String(roll.dropLast(6)))
+        sendToE(String(format: "%dd%d%+d",1,20,mod),rolled+mod,String(format: "(%d)%@",rolled, modstr),"check",String(roll.dropLast(6)))
         } else {
-            sendToE(String(format: "%dd%d%+d",1,20,mod),rolled+mod,String(format: "(%d) %+d",rolled, mod),nil,roll)
+            sendToE(String(format: "%dd%d%+d",1,20,mod),rolled+mod,String(format: "(%d)%@",rolled, modstr),nil,roll)
         }
         self.present(rollDialog, animated: true, completion: nil)
     }
@@ -714,9 +717,13 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
                 if crit { dice2 *= 2 }
                 var damageRoll = String(dice2) + "d" + String(die2)
                 if mod > 0 {
+                    sendToE(String(format: "%dd%d%+d",1,20,mod),rolled+mod,String(format: "(%d) + %d",rolled, mod),"attack",String(roll.dropLast(7)))
                     damageRoll += "+" + String(mod)
                 } else if mod < 0 {
+                    sendToE(String(format: "%dd%d%+d",1,20,mod),rolled+mod,String(format: "(%d) - %d",rolled, abs(mod)),"attack",String(roll.dropLast(7)))
                     damageRoll += String(mod)
+                } else {
+                    sendToE(String(format: "%dd%d",1,20,mod),rolled+mod,String(format: "(%d)",rolled),"attack",String(roll.dropLast(7)))
                 }
                 rollDialog.addAction(UIAlertAction(title: "Roll " + damageRoll + " " + damagetype + " Damage", style: UIAlertAction.Style.default, handler: {action in self.rollDamage(roll: roll, dice: dice2, die: die2, mod: mod2, damagetype: damagetype)}))
             }
@@ -724,8 +731,6 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
         rollDialog.addAction(UIAlertAction(title: "Thanks!", style: UIAlertAction.Style.default, handler: nil))
         rollDialog.view.addSubview(UIView())
         rollDialog.popoverPresentationController?.sourceView = self.view
-        
-        sendToE(String(format: "%dd%d%+d",1,20,mod),rolled+mod,String(format: "(%d) %+d",rolled, mod),"attack",String(roll.dropLast(7)))
         
         self.present(rollDialog, animated: true, completion: nil)
     }
@@ -751,13 +756,17 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
         
         if mod < 0 {
             dieRoll += "\n" + "(Rolled: " + rolledString + String(mod) + ")"
+            sendToE(String(format: "%dd%d%+d",dice,die,mod),rolled+mod,String(format:"(%@) - %d",rolledString,abs(mod)),"damage",String(roll.dropLast(7)))
         } else if mod > 0 {
             dieRoll += "\n" + "(Rolled: " + rolledString + " + " + String(mod) + ")"
-        } else if dice > 1 {
-            dieRoll += "\n" + "(Rolled: " + rolledString + ")"
+            sendToE(String(format: "%dd%d%+d",dice,die,mod),rolled+mod,String(format:"(%@) + %d",rolledString,mod),"damage",String(roll.dropLast(7)))
+        } else {
+            sendToE(String(format: "%dd%d",dice,die,mod),rolled+mod,String(format:"(%@)",rolledString),"damage",String(roll.dropLast(7)))
+            if dice > 1 {
+                dieRoll += "\n" + "(Rolled: " + rolledString + ")"
+            }
         }
 
-        sendToE(String(format: "%dd%d%+d",dice,die,mod),rolled+mod,String(format:"(%@) %+d",rolledString,mod),"damage",String(roll.dropLast(7)))
         
         if (roll.contains("Vicious Mockery")) {
             let insult = VMInsults().insult
@@ -977,7 +986,7 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
     func sendMessageToE(_ message: String) {
         let data = [
             "source": self.characterName,
-            "type": "message",
+            "type": "chat",
             "content": message
             ] as [String : Any]
         let defaults = UserDefaults.standard
