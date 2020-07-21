@@ -411,6 +411,13 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
         rollDialog.addAction(UIAlertAction(title: "Thanks!", style: UIAlertAction.Style.default, handler: nil))
         rollDialog.view.addSubview(UIView())
         rollDialog.popoverPresentationController?.sourceView = self.view
+        if roll.hasSuffix("Save") {
+            sendToE(String(format: "%dd%d%+d",1,20,mod),rolled+mod,String(format: "(%d) %+d",rolled, mod),"save",String(roll.dropLast(5)))
+        } else if roll.hasSuffix("Check") {
+        sendToE(String(format: "%dd%d%+d",1,20,mod),rolled+mod,String(format: "(%d) %+d",rolled, mod),"check",String(roll.dropLast(6)))
+        } else {
+            sendToE(String(format: "%dd%d%+d",1,20,mod),rolled+mod,String(format: "(%d) %+d",rolled, mod),nil,roll)
+        }
         self.present(rollDialog, animated: true, completion: nil)
     }
     
@@ -557,6 +564,7 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
             let rollDialog = UIAlertController(title: roll, message: theRoll,preferredStyle: .alert)
             rollDialog.addAction(resultAction)
             rollDialog.popoverPresentationController?.sourceView = self.view
+            sendToE(String(format: "%dd%d",dice,die),rolled,rolledString,nil,"custom")
             self.present(rollDialog, animated: true, completion: nil)
         }
     }
@@ -714,6 +722,9 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
         rollDialog.addAction(UIAlertAction(title: "Thanks!", style: UIAlertAction.Style.default, handler: nil))
         rollDialog.view.addSubview(UIView())
         rollDialog.popoverPresentationController?.sourceView = self.view
+        
+        sendToE(String(format: "%dd%d%+d",1,20,mod),rolled+mod,String(format: "(%d) %+d",rolled, mod),"attack",String(roll.dropLast(7)))
+        
         self.present(rollDialog, animated: true, completion: nil)
     }
     
@@ -743,19 +754,19 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
         } else if dice > 1 {
             dieRoll += "\n" + "(Rolled: " + rolledString + ")"
         }
+
+        sendToE(String(format: "%dd%d%+d",dice,die,mod),rolled+mod,String(format:"(%@) %+d",rolledString,mod),"damage",String(roll.dropLast(7)))
+        
         if (roll.contains("Vicious Mockery")) {
             let insult = VMInsults().insult
             dieRoll = "\n" + insult + "\n\n" + dieRoll
+            sendMessageToE("\"\(insult)\"")
         }
         let rollDialog = UIAlertController(title: roll, message: dieRoll,preferredStyle: .alert)
         rollDialog.addAction(UIAlertAction(title: "Thanks!", style: UIAlertAction.Style.default, handler: nil))
         rollDialog.view.addSubview(UIView())
         rollDialog.popoverPresentationController?.sourceView = self.view
-        let defaults = UserDefaults.standard
-        let remoteHost = defaults.string(forKey: "remoteHost") ?? ""
-        if remoteHost.hasPrefix("http") {
-            sendToE(rolled,rolledString)
-        }
+
         self.present(rollDialog, animated: true, completion: nil)
     }
     
@@ -911,28 +922,29 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
         
     }
 
-    func sendToE(_ rolled: Int,_ rolledString: String? = "") {
-						
+    func sendToE(_ formula: String,_ rolled: Int,_ rolledString: String = "", _ rolltype: String? = nil,_ name: String) {
         let data = [
             "source": "Test",
             "type": "roll",
             "content": [
+                "formula": formula,
                 "result": rolled,
                 "detail": rolledString,
-                "name": "test",
-                "type": "roll"
+                "name": name,
+                "type": rolltype
                 ]
-            ]
+            ] as [String : Any]
         let defaults = UserDefaults.standard
         let remoteHost = defaults.string(forKey: "remoteHost") ?? ""
         if remoteHost.hasPrefix("http") {
             let url = URL(string: remoteHost)!
             let session = URLSession.shared
-            var request = URLRequest(url: url)
+            var request = URLRequest(url: url.appendingPathComponent("/api/messages"))
             request.httpMethod = "POST"
             do {
-                request.httpBody = try JSONSerialization.data(withJSONObject: data, options: .prettyPrinted) // pass dictionary to data object and set it as request body
+                request.httpBody = try JSONSerialization.data(withJSONObject: data, options: []) // pass dictionary to data object and set it as request body
             } catch let error {
+                print("Error with json")
                 print(error.localizedDescription)
             }
             request.addValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -951,7 +963,51 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
                     guard let json = try JSONSerialization.jsonObject(with: data, options: .mutableContainers) as? [String: Any] else {
                         return
                     }
-                    print(json)
+                    //print(json)
+                } catch let error {
+                    print(error.localizedDescription)
+                }
+            })
+            task.resume()
+        }
+    }
+    
+    func sendMessageToE(_ message: String) {
+        let data = [
+            "source": "Test",
+            "type": "message",
+            "content": message
+            ] as [String : Any]
+        let defaults = UserDefaults.standard
+        let remoteHost = defaults.string(forKey: "remoteHost") ?? ""
+        if remoteHost.hasPrefix("http") {
+            let url = URL(string: remoteHost)!
+            let session = URLSession.shared
+            var request = URLRequest(url: url.appendingPathComponent("/api/messages"))
+            request.httpMethod = "POST"
+            do {
+                request.httpBody = try JSONSerialization.data(withJSONObject: data, options: []) // pass dictionary to data object and set it as request body
+            } catch let error {
+                print("Error with json")
+                print(error.localizedDescription)
+            }
+            request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.addValue("application/json", forHTTPHeaderField: "Accept")
+            let task = session.dataTask(with: request, completionHandler: { data, response, error in
+                guard error == nil else {
+                    return
+                }
+
+                guard let data = data else {
+                    return
+                }
+
+                do {
+                    //create json object from data
+                    guard let json = try JSONSerialization.jsonObject(with: data, options: .mutableContainers) as? [String: Any] else {
+                        return
+                    }
+                    //print(json)
                 } catch let error {
                     print(error.localizedDescription)
                 }

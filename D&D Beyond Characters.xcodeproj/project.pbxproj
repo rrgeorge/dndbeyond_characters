@@ -23,6 +23,7 @@
 		DAABE72D22D6C63D0018691D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = DAABE72B22D6C63D0018691D /* LaunchScreen.storyboard */; };
 		DAABE73822D6C63D0018691D /* D_D_Beyond_CharactersTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAABE73722D6C63D0018691D /* D_D_Beyond_CharactersTests.swift */; };
 		DAABE74322D6C63D0018691D /* D_D_Beyond_CharactersUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAABE74222D6C63D0018691D /* D_D_Beyond_CharactersUITests.swift */; };
+		DADD5CAF24C67EB1005C0C5F /* Settings.bundle in Resources */ = {isa = PBXBuildFile; fileRef = DADD5CAE24C67EB1005C0C5F /* Settings.bundle */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -65,6 +66,7 @@
 		DAABE73E22D6C63D0018691D /* D&D Beyond CharactersUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "D&D Beyond CharactersUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		DAABE74222D6C63D0018691D /* D_D_Beyond_CharactersUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = D_D_Beyond_CharactersUITests.swift; sourceTree = "<group>"; };
 		DAABE74422D6C63D0018691D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		DADD5CAE24C67EB1005C0C5F /* Settings.bundle */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.plug-in"; path = Settings.bundle; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -115,6 +117,7 @@
 		DAABE72122D6C6380018691D /* D&D Beyond Characters */ = {
 			isa = PBXGroup;
 			children = (
+				DADD5CAE24C67EB1005C0C5F /* Settings.bundle */,
 				DAABE72222D6C6380018691D /* AppDelegate.swift */,
 				DAABE72422D6C6380018691D /* ViewController.swift */,
 				DA80697F232BF1CF002683A8 /* DDBCacheHandler.swift */,
@@ -262,6 +265,7 @@
 				DA73D5BE2310E31200B24C31 /* imgpreload.js in Resources */,
 				DAABE72A22D6C63D0018691D /* Assets.xcassets in Resources */,
 				DAABE72822D6C6380018691D /* Main.storyboard in Resources */,
+				DADD5CAF24C67EB1005C0C5F /* Settings.bundle in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
