@@ -913,29 +913,16 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
 
     func sendToE(_ rolled: int,_ rolledString: String? = "") {
 						
-		struct rollcontent : Codable {
-            let formula: String?
-            let result: Int
-            let detail: String?
-            let name: String?
-            let type: String?
-        }
-    
-        struct jsonroll : Codable {
-            let source: String?
-            let type: String?
-            let content: rollcontent
-        }
-        
-        let data = jsonroll()
-        data.content = rollcontent()
-        data.source = "Test"
-        data.type = "roll"
-        data.content.result = rolled
-        data.content.detail = rolledString
-        data.content.name = "test"
-        data.content.type = "roll"
-        
+        let data = [
+            "source": "Test"
+            "type": "roll"
+            "content": [
+                "result": rolled
+                "detail": rolledString
+                "name": "test"
+                "type": "roll"
+                ]
+            ]
         let defaults = UserDefaults.standard
         let remoteHost = defaults.string(forKey: "remoteHost") ?? ""
         if remoteHost.hasPrefix("http") {
