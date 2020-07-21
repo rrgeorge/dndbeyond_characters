@@ -18,7 +18,7 @@ if (abilities.length == 0) {
     saves=document.getElementsByClassName('ddbc-saving-throws-summary');
     for(var i=0,len=abilities.length;i<len;i++){
         (mod={}).stat=abilities[i].getElementsByClassName('ddbc-ability-summary__abbr')[0].innerText;
-        mod.save=parseInt(saves[0].getElementsByClassName('ddbc-saving-throws-summary__ability--' + mod.stat)[0].getElementsByClassName('ddbc-signed-number')[0].textContent);
+        mod.save=parseInt(saves[0].getElementsByClassName('ddbc-saving-throws-summary__ability--' + mod.stat.toLowerCase())[0].getElementsByClassName('ddbc-signed-number')[0].textContent);
         mod.modifier = parseInt(abilities[i].getElementsByClassName('ddbc-signed-number')[0].textContent);
         mods.push(mod)
     }

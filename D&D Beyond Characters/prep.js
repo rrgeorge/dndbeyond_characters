@@ -691,27 +691,20 @@ var callback = function(mutation, observer) {
     var charBHeader = document.getElementsByClassName('builder-sections');
     if (charBHeader[0]) { charBHeader[0].style.top = 0; }
 
-    var popoutmenu = document.getElementsByClassName("ct-popout-menu");
+    var popoutmenu = document.getElementsByClassName("ct-character-manage-pane__menu");
     if (popoutmenu[0] && !document.getElementById("backtolistitem")) {
-        for(var i=0,len=popoutmenu[0].children.length;i<len;i++){
-            if (popoutmenu[0].children[i].children[0] && popoutmenu[0].children[i].children[0].tagName == "FORM") {
-                popoutmenu[0].children[i].remove();
+        var menuitem,menuprefs
+        for(var i=0,menuitems=popoutmenu[0].getElementsByClassName('ct-pane-menu__item'),len=menuitems.length;i<len;i++){
+            if (menuitems[i].getElementsByClassName('ct-pane-menu__item-label')[0].textContent == "Change Portrait") {
+                menuitem = menuitems[i].cloneNode(true);
+            }
+            if (menuitems[i].getElementsByClassName('ct-pane-menu__item-label')[0].textContent == "Preferences") {
+                menuprefs = menuitems[i].cloneNode(true);
             }
         }
-        var menuitem = document.createElement("div");
-        var menuitema = document.createElement("div");
-        var menuitemb = document.createElement("div");
-        var menuicon = document.createElement("i");
+        
         menuitem.id = "backtolistitem";
-        menuitem.className = "ct-popout-menu__item";
-        menuicon.className = "i-menu-portrait";
-        menuitema.className = "ct-popout-menu__item-preview";
-        menuitemb.className = "ct-popout-menu__item-label";
-        menuitemb.innerText="Character List";
-        menuitema.appendChild(menuicon);
-        menuitem.appendChild(menuitema);
-        menuitem.appendChild(menuitemb);
-        popoutmenu[0].appendChild(menuitem);
+        menuitem.getElementsByClassName('ct-pane-menu__item-label')[0].innerText = "Character List"
         menuitem.addEventListener("click", function(){
                                   if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.navFunction) {
                                     window.webkit.messageHandlers.navFunction.postMessage("GoHome");
@@ -720,6 +713,16 @@ var callback = function(mutation, observer) {
                                   } else {
                                     window.location='/my-characters';
                                   }});
+        popoutmenu[0].firstChild.appendChild(menuitem);
+        menuprefs.id = "appprefs";
+        menuprefs.getElementsByClassName('ct-pane-menu__item-label')[0].innerText = "App Settings"
+        menuprefs.addEventListener("click", function(){
+                                  if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.navFunction) {
+                                    window.webkit.messageHandlers.navFunction.postMessage("AppSetting");
+                                  } else if (AndroidApp && AndroidApp.navFunction) {
+                                    AndroidApp.navFunction("AppSetting");
+                                  }});
+        popoutmenu[0].firstChild.appendChild(menuprefs);
     }
     if (document.getElementsByClassName("ct-quick-nav--closed")[0]) {
         document.getElementsByClassName("ct-quick-nav--closed")[0].style.top = "";

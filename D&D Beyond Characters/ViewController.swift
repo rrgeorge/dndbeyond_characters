@@ -1175,7 +1175,7 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
                             if let charObj = charJSON["data"] as? [String: Any] {
                                 self.characterName = charObj["name"] as! String
                                 if let theme = charObj["themeColor"] as? [String: Any] {
-                                    self.characterColor = theme["themeColor"] as String ?? "f00"
+                                    self.characterColor = theme["themeColor"] as? String ?? "f00"
                                 }
                                 let prefs = charObj["preferences"] as! [String: Any]
                                 sharingType = prefs["sharingType"] as! Int
@@ -1958,6 +1958,12 @@ extension ViewController: WKScriptMessageHandler {
         } else if message.name == "navFunction" {
             if message.body as? String == "GoHome" {
                 returnHome()
+            } else if message.body as? String == "AppSetting" {
+                if let url = URL(string: UIApplication.openSettingsURLString) {
+                    if UIApplication.shared.canOpenURL(url) {
+                        UIApplication.shared.open(url, options: [:], completionHandler: nil)
+                    }
+                }
             } else if message.body as? String == "LoadImages" {
                 do {
                     let imgjs = try String(contentsOfFile: Bundle.main.path(forResource: "imgpreload", ofType: "js")!)
