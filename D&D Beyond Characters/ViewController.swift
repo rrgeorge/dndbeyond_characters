@@ -911,7 +911,7 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
         
     }
 
-    func sendToE(_ rolled: int,_ rolledString: String? = "") {
+    func sendToE(_ rolled: Int,_ rolledString: String? = "") {
 						
         let data = [
             "source": "Test",
