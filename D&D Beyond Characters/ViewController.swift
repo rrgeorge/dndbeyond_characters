@@ -1256,9 +1256,8 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
                                        print("Could not download Character JSON")
                                        throw ArchiveError.NoCharacterSVC
                                    }
-                                   let encoding = CFStringConvertIANACharSetNameToEncoding(response?.textEncodingName as CFString?)
                                    let charSet: String.Encoding
-                                   if encoding != kCFStringEncodingInvalidId {
+                                   if let encoding = CFStringConvertIANACharSetNameToEncoding(response?.textEncodingName as CFString?) && encoding != kCFStringEncodingInvalidId {
                                        let senc = CFStringConvertEncodingToNSStringEncoding(encoding)
                                        charSet = String.Encoding(rawValue: senc)
                                    } else {
