@@ -34,6 +34,7 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
     var _wknavigation: WKNavigation?
     var _wkurl: URL?
     var webView: WKWebView!
+    var webViewPopUp: WKWebView!
     var pinchGesture: UIPinchGestureRecognizer!
     var swipeGesture: UISwipeGestureRecognizer!
     var _archivebar: UIProgressView?
@@ -240,8 +241,10 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
             if Float(webView.estimatedProgress) == 1 {
                 if !(self.webView.url?.absoluteString.hasSuffix(".html"))! && self.webView.url?.scheme != "ddbcache" {
                     do {
-                        let js = try String(contentsOfFile: Bundle.main.path(forResource: "prep", ofType: "js")!)
-                        self.webView.evaluateJavaScript(js)
+                        if self.checkIfCharacterSheet(wV: webView) || self.checkIfCharacterSheetBuilder(url: self.webView.url!.absoluteString) ||  ((self.webView.url?.absoluteString.hasSuffix("my-characters")) != nil) {
+                            let js = try String(contentsOfFile: Bundle.main.path(forResource: "prep", ofType: "js")!)
+                            self.webView.evaluateJavaScript(js)
+                        }
                         if (self.checkIfCharacterSheet(wV: webView)) {
                             let imgjs = """
                             (function() {
@@ -483,6 +486,9 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
                 demoDialog.popoverPresentationController?.sourceView = self.view
                 self.present(demoDialog, animated: true, completion: {demoDialog.textFields?.first?.becomeFirstResponder()})
                 return
+            }
+            if (diceStr == "log" && dieStr == "out") || (diceStr == "999" && dieStr == "999") {
+                self.webView.evaluateJavaScript("document.forms['logoutForm'].submit()", completionHandler: nil)
             }
             var dice = Int(diceStr) ?? 1
             if dice < 1 { dice = 1 }
@@ -1256,8 +1262,10 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
                                        print("Could not download Character JSON")
                                        throw ArchiveError.NoCharacterSVC
                                    }
+                                //print(response)
                                    let charSet: String.Encoding
-                                   if let encoding = CFStringConvertIANACharSetNameToEncoding(response?.textEncodingName as CFString?) && encoding != kCFStringEncodingInvalidId {
+                                   let encoding = CFStringConvertIANACharSetNameToEncoding(response?.textEncodingName as CFString?)
+                                   if encoding != kCFStringEncodingInvalidId {
                                        let senc = CFStringConvertEncodingToNSStringEncoding(encoding)
                                        charSet = String.Encoding(rawValue: senc)
                                    } else {
@@ -1801,7 +1809,19 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
 }
 
 extension ViewController: WKNavigationDelegate {
-    
+    func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration, for navigationAction: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
+        let url = navigationAction.request.url
+        if (url != nil) && ((url?.absoluteString.hasPrefix("https://accounts.google.com/o/oauth2/auth")) != nil) && navigationAction.targetFrame == nil {
+            webViewPopUp = WKWebView(frame: view.bounds, configuration: configuration)
+            webViewPopUp.customUserAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 13_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.1.2 Mobile/15E148 Safari/604.1"
+            webViewPopUp.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+            webViewPopUp.navigationDelegate = self
+            webViewPopUp.uiDelegate = self
+            view.addSubview(webViewPopUp)
+            return webViewPopUp
+        }
+        return nil;
+    }
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
         print("Could not load \(error)")
     }
@@ -1893,6 +1913,10 @@ extension ViewController: WKNavigationDelegate {
         webView.configuration.websiteDataStore.httpCookieStore.getAllCookies( { cookies in
             for cookie in cookies {
                 if cookie.domain.hasSuffix("dndbeyond.com") && cookie.name == "CobaltSession" {
+                    if self.webViewPopUp != nil {
+                        self.webViewPopUp.removeFromSuperview()
+                        self.webViewPopUp = nil
+                    }
                     HTTPCookieStorage.shared.setCookie(cookie)
                 }
                 if cookie.name == "RequestVerificationToken" {
@@ -1908,7 +1932,6 @@ extension ViewController: WKNavigationDelegate {
                 }
             }
         })
-//        print(navigationResponse.response.url?.absoluteString)
         decisionHandler(.allow)
     }
 }

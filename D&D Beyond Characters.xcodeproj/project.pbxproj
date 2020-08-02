@@ -67,6 +67,7 @@
 		DAABE74222D6C63D0018691D /* D_D_Beyond_CharactersUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = D_D_Beyond_CharactersUITests.swift; sourceTree = "<group>"; };
 		DAABE74422D6C63D0018691D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		DADD5CAE24C67EB1005C0C5F /* Settings.bundle */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.plug-in"; path = Settings.bundle; sourceTree = "<group>"; };
+		DAF4A72D24D769FE00F31096 /* D&D Beyond Characters.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "D&D Beyond Characters.entitlements"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -117,6 +118,7 @@
 		DAABE72122D6C6380018691D /* D&D Beyond Characters */ = {
 			isa = PBXGroup;
 			children = (
+				DAF4A72D24D769FE00F31096 /* D&D Beyond Characters.entitlements */,
 				DADD5CAE24C67EB1005C0C5F /* Settings.bundle */,
 				DAABE72222D6C6380018691D /* AppDelegate.swift */,
 				DAABE72422D6C6380018691D /* ViewController.swift */,
@@ -472,9 +474,10 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = "D&D Beyond Characters/D&D Beyond Characters.entitlements";
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 73;
+				CURRENT_PROJECT_VERSION = 74;
 				DEVELOPMENT_TEAM = 97869B6X2R;
 				INFOPLIST_FILE = "D&D Beyond Characters/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -484,6 +487,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "net.midnightweb.D-D-Beyond-Characters";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
+				SUPPORTS_MACCATALYST = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -493,9 +497,10 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = "D&D Beyond Characters/D&D Beyond Characters.entitlements";
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 73;
+				CURRENT_PROJECT_VERSION = 74;
 				DEVELOPMENT_TEAM = 97869B6X2R;
 				INFOPLIST_FILE = "D&D Beyond Characters/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -505,6 +510,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "net.midnightweb.D-D-Beyond-Characters";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
+				SUPPORTS_MACCATALYST = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};

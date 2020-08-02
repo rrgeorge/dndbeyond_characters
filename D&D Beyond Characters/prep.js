@@ -567,20 +567,20 @@ var send_proto_repl2 = function send(data) {
     if (this._url) {
         if (typeof jsonfiles !== 'undefined') {
             console.log("Checking cache")
-            Object.defineProperty(this,'readyState', { configurable: true, writable: true, });
-            Object.defineProperty(this,'status', { configurable: true, writable: true, });
-            Object.defineProperty(this,'statusText', { configurable: true, writable: true, });
-            Object.defineProperty(this,'response', { configurable: true, writable: true, });
-            Object.defineProperty(this,'responseText', { configurable: true, writable: true, });
-            Object.defineProperty(this,'responseURL', { configurable: true, writable: true, });
-            Object.defineProperty(this,'responseType', { configurable: true, writable: true, });
-            if (this._url.startsWith("http")) {
-                this.responseURL = this._url;
-            } else {
-                this.responseURL = document.location.protocol + "//" + document.location.host + this._url;
-            }
             for (var key in jsonfiles) {
                 if ((this._url.includes(key) && this._url.startsWith("https://character-service.")) || (this._url.includes("game-data/spells") && key == "spelllist_" + new URLSearchParams(this._url).get("classId")) || (this._url.endsWith(jsonfiles["characterjson"].data.id) && key == "characterjson") || this._url == key) {
+                    Object.defineProperty(this,'readyState', { configurable: true, writable: true, });
+                    Object.defineProperty(this,'status', { configurable: true, writable: true, });
+                    Object.defineProperty(this,'statusText', { configurable: true, writable: true, });
+                    Object.defineProperty(this,'response', { configurable: true, writable: true, });
+                    Object.defineProperty(this,'responseText', { configurable: true, writable: true, });
+                    Object.defineProperty(this,'responseURL', { configurable: true, writable: true, });
+                    Object.defineProperty(this,'responseType', { configurable: true, writable: true, });
+                    if (this._url.startsWith("http")) {
+                        this.responseURL = this._url;
+                    } else {
+                        this.responseURL = document.location.protocol + "//" + document.location.host + this._url;
+                    }
                     this.status = 200;
                     this.statusText = "OK";
                     this.response = jsonfiles[key]
@@ -597,6 +597,8 @@ var send_proto_repl2 = function send(data) {
     if (this._url.startsWith("/api/character")) {
         handleOfflineAPI([{"url": "json","data": ""}]);
     }
+    console.log("Sending to the original function");
+    console.log(arguments);
     return send_proto_orig.apply(this,arguments);
 };
 
@@ -787,17 +789,50 @@ var callback = function(mutation, observer) {
                                             "name":	roll_title
                                     }
                             };
-                    if (roll_type != "roll") {
-                        if (roll_type == "to hit") {
-                            rolljson.content.type = "attack";
-                        } else {
-                            rolljson.content.type = roll_type;
-                        }
+                    if (["check","save","attack","damage"].includes(roll_type)) {
+                        rolljson.content.type = roll_type;
+                    } else if (roll_type == "to hit") {
+                        rolljson.content.type = "attack";
                     }
                     if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.sendRoll) {
                         window.webkit.messageHandlers.sendRoll.postMessage(JSON.stringify(rolljson));
                     }
                     return;
+                }
+                results = mutation[i].addedNodes[m].getElementsByClassName('ct-spell-detail__description');
+                let actiontype = "spell";
+                let actionname = ""
+                if (results[0]) {
+                    actionname = mutation[i].addedNodes[m].getElementsByClassName('ddbc-spell-name')[0].textContent;
+                } else {
+                    results = mutation[i].addedNodes[m].getElementsByClassName('ct-action-detail__description');
+                    if (results[0]) {
+                        actiontype = "action";
+                        actionname = mutation[i].addedNodes[m].getElementsByClassName('ddbc-action-name')[0].textContent;
+                    }
+                }
+                if (results.length > 0 && !document.getElementById('sendTextToEncounter')) {
+                    let sendtoEDiv = document.createElement("div");
+                    sendtoEDiv.style.textAlign = "right";
+                    sendtoEDiv.style.marginTop = 10;
+                    let sendtoEButton = document.createElement("button");
+                    sendtoEButton.id = 'sendTextToEncounter';
+                    sendtoEButton.classList.add('ct-theme-button','ct-theme-button--filled','ct-theme-button--interactive','ct-button','character-button');
+                    sendtoEButton.innerText = 'Share on EncounterPlus';
+                    sendtoEButton.style.textAlign = "right";
+                    let character_name = document.getElementsByClassName('ddbc-character-name')[0].textContent;
+                    let msgjson = {
+                        "source": character_name + " shared the " + actiontype + ": \"" + actionname + "\"",
+                        "type":    "chat",
+                        "content": results[0].innerText
+                        };
+                    sendtoEButton.addEventListener('click',function(){
+                        if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.sendRoll) {
+                            window.webkit.messageHandlers.sendRoll.postMessage(JSON.stringify(msgjson));
+                        }
+                    });
+                    results[0].appendChild(sendtoEDiv);
+                    sendtoEDiv.appendChild(sendtoEButton);
                 }
             }
         }
