@@ -43,19 +43,57 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
     var _csrfToken: String?
     var _ddbUser: String?
     var characterName: String = "D&D Beyond"
-    var characterColor: String = "f00"
+    var characterColor: String = "c53131"
     var modifiers = [modifier]()
     var queuedAPICalls = [apiCall]()
     var reachability: Reachability?
+    var lastInsult: String?
     
+    func clearAllData(_ force: Bool = false) {
+        let defaults = UserDefaults.standard
+       
+        if defaults.bool(forKey: "clearAllData") == true || force == true {
+            if self.webView != nil {
+                webView.stopLoading()
+            }
+            let webDataStore = WKWebsiteDataStore.default()
+            webDataStore.removeData(ofTypes: WKWebsiteDataStore.allWebsiteDataTypes(), modifiedSince: Date(timeIntervalSince1970: 0), completionHandler: {})
+
+            do {
+                let docs = try FileManager.default.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+                let files = try FileManager.default.contentsOfDirectory(atPath: docs.path)
+                for file in files {
+                    if file == "com.dndbeyond.resourcecache" {
+                        try FileManager.default.removeItem(at: docs.appendingPathComponent(file, isDirectory: true))
+                    } else if file.hasSuffix(".html") || file.hasSuffix(".json") {
+                        try FileManager.default.removeItem(at: docs.appendingPathComponent(file))
+                    }
+                }
+            } catch {
+                print("Could not clear data \(error)")
+            }
+            defaults.removeObject(forKey: "queuedAPICalls")
+            defaults.removeObject(forKey: "activeURL")
+            defaults.set(false, forKey: "clearAllData")
+            if self.webView != nil {
+                let myURL = URL(string:"https://www.dndbeyond.com/logout")
+                var myRequest = URLRequest(url: myURL!)
+                myRequest.setValue("https://www.dndbeyond.com/my-characters", forHTTPHeaderField: "Referer")
+                myRequest.setValue("https://www.dndbeyond.com/", forHTTPHeaderField: "Origin")
+                myRequest.httpMethod = "POST"
+                self.webView.load(myRequest)
+            }
+        }
+    }
+        
     override func viewDidLoad() {
         super.viewDidLoad()
         
         reachability = try! Reachability()
 
+        let defaults = UserDefaults.standard
         let webConfiguration = WKWebViewConfiguration()
         let webDataStore = WKWebsiteDataStore.default()
-        
         
         webConfiguration.websiteDataStore = webDataStore
         webConfiguration.dataDetectorTypes = []
@@ -82,20 +120,35 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
         webView.bottomAnchor.constraint(equalTo: view.bottomAnchor).isActive = true
         //webView.topAnchor.constraint(equalTo: view.topAnchor).isActive = true
         webView.scrollView.contentInsetAdjustmentBehavior = .never
-        let defaults = UserDefaults.standard
-
-        let myURL = defaults.url(forKey: "activeURL") ?? URL(string:"https://www.dndbeyond.com/my-characters")
+        webView.scrollView.minimumZoomScale = 1
         
-        queuedAPICalls = defaults.structArrayData(apiCall.self,forKey: "queuedAPICalls")
-        
-        let myRequest = URLRequest(url: myURL!)
-        if webView.url == nil || webView.url?.absoluteString == "about:blank" {
-            webView.load(myRequest)
+        if #available(iOS 13.0, *) {
+            let rollCommand = UIKeyCommand(title: "Roll Some Dice", image: nil, action: #selector(ViewController.parseToRollDice), input: "r", modifierFlags: [.command], propertyList: nil, alternates: [], discoverabilityTitle: "Roll Some Dice", attributes: [], state: .off)
+            let logoutCommand = UIKeyCommand(title: "Logout of D&D Beyond", image: nil, action: #selector(ViewController.doLogout), input: "l", modifierFlags: [.command,.shift], propertyList: nil, alternates: [], discoverabilityTitle: "Logout Now", attributes: [.destructive], state: .off)
+            self.addKeyCommand(rollCommand)
+            self.addKeyCommand(logoutCommand)
         }
-
+        
+        if defaults.bool(forKey: "clearAllData") == true {
+            self.clearAllData()
+        } else {
+            let myURL = defaults.url(forKey: "activeURL") ?? URL(string:"https://www.dndbeyond.com/my-characters")
+        
+            queuedAPICalls = defaults.structArrayData(apiCall.self,forKey: "queuedAPICalls")
+        
+            let myRequest = URLRequest(url: myURL!)
+            if webView.url == nil || webView.url?.absoluteString == "about:blank" {
+                webView.load(myRequest)
+            }
+        }
+        
         webView.addObserver(self, forKeyPath: #keyPath(WKWebView.estimatedProgress), options: .new, context: nil)
         webView.addObserver(self, forKeyPath: #keyPath(WKWebView.isLoading), options: .new, context: nil)
         webView.addObserver(self, forKeyPath: #keyPath(WKWebView.url), options: .new, context: nil)
+        swipeGesture = UISwipeGestureRecognizer.init()
+        swipeGesture.direction = .down
+        swipeGesture.addTarget(self, action: #selector(swipeDown))
+        webView.addGestureRecognizer(swipeGesture)
         
         NotificationCenter.default.addObserver(self, selector: #selector(reachabilityChanged(note:)), name: .reachabilityChanged, object: reachability)
         do{
@@ -103,6 +156,17 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
         }catch{
             print("could not start reachability notifier")
         }
+    }
+    
+    @IBAction func swipeDown(_ swipe: UISwipeGestureRecognizer) {
+        print(swipe)
+        if swipe.state == .ended {
+            print(swipe.location(in: self.webView))
+        }
+    }
+ 
+    @objc func doLogout() {
+        self.clearAllData(true)
     }
     
     @objc func reachabilityChanged(note: Notification) {
@@ -119,12 +183,12 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
                         let data = call.data ?? ""
                         let method = call.method ?? "PUT"
                         if url.hasPrefix("https://character-service.dndbeyond.com/character/v3/character") && call.data != nil {
-                            print("Sending call \(call.method) to \(call.url) with \(call.data)")
+                            //print("Sending call \(call.method) to \(call.url) with \(call.data)")
                             if !self.sendAPICall(url: url, data: data, method: method) {
                                 newAPIQueue.append(call)
                             }
                         } else {
-                            print("Ignoring call \(call.method) to \(call.url) with \(call.data)")
+                            //print("Ignoring call \(call.method) to \(call.url) with \(call.data)")
                         }
                     }
                     self.queuedAPICalls.removeAll()
@@ -175,13 +239,15 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
         return true
     }
 
+    
+    
     override func motionEnded(_ motion: UIEvent.EventSubtype, with event: UIEvent?) {
         if motion == .motionShake {
             parseToRollDice()
         }
     }
     
-    func parseToRollDice () {
+    @objc func parseToRollDice () {
         do {
             if (checkIfCharacterSheetBuilderClasses(wV: webView)) {
                 let js = """
@@ -488,7 +554,7 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
                 return
             }
             if (diceStr == "log" && dieStr == "out") || (diceStr == "999" && dieStr == "999") {
-                self.webView.evaluateJavaScript("document.forms['logoutForm'].submit()", completionHandler: nil)
+                self.clearAllData(true)
             }
             var dice = Int(diceStr) ?? 1
             if dice < 1 { dice = 1 }
@@ -778,7 +844,7 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
         if (roll.contains("Vicious Mockery")) {
             let insult = VMInsults().insult
             dieRoll = "\n" + insult + "\n\n" + dieRoll
-            sendMessageToE("\"\(insult)\"")
+            self.lastInsult = insult
         }
         let rollDialog = UIAlertController(title: roll, message: dieRoll,preferredStyle: .alert)
         rollDialog.addAction(UIAlertAction(title: "Thanks!", style: UIAlertAction.Style.default, handler: nil))
@@ -950,11 +1016,15 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
                 "result": rolled,
                 "detail": rolledString,
                 "name": name,
-                "type": rolltype
+                "type": rolltype as Any
                 ]
             ] as [String : Any]
         let defaults = UserDefaults.standard
-        let remoteHost = defaults.string(forKey: "remoteHost") ?? ""
+        var remoteHost = defaults.string(forKey: "remoteHost") ?? ""
+        if remoteHost != "" && !remoteHost.hasPrefix("http") {
+            remoteHost = "http://" + remoteHost
+            defaults.set(remoteHost, forKey: "remoteHost")
+        }
         if remoteHost.hasPrefix("http") {
             let url = URL(string: remoteHost)!
             let session = URLSession.shared
@@ -979,8 +1049,13 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
 
                 do {
                     //create json object from data
-                    guard let json = try JSONSerialization.jsonObject(with: data, options: .mutableContainers) as? [String: Any] else {
+                    guard (try JSONSerialization.jsonObject(with: data, options: .mutableContainers) as? [String: Any]) != nil else {
                         return
+                    }
+                    if (name.contains("Vicious Mockery")) {
+                        let insult = self.lastInsult ?? VMInsults().insult
+                        self.sendMessageToE("\"\(insult)\"")
+                        self.lastInsult = VMInsults().insult
                     }
                     //print(json)
                 } catch let error {
@@ -1024,7 +1099,7 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
 
                 do {
                     //create json object from data
-                    guard let json = try JSONSerialization.jsonObject(with: data, options: .mutableContainers) as? [String: Any] else {
+                    guard (try JSONSerialization.jsonObject(with: data, options: .mutableContainers) as? [String: Any]) != nil else {
                         return
                     }
                     //print(json)
@@ -1088,10 +1163,13 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
     func makeWebArchive(_ urls: Array<String>, _ activeUrl: URL) {
         DispatchQueue.global(qos: .background).async {
             DispatchQueue.main.sync {
+                if self._archivebar != nil {
+                    self._archivebar?.removeFromSuperview()
+                }
                 self._archivebar = UIProgressView(progressViewStyle: .bar)
                 let frame = self.view.frame
                 self._archivebar!.frame = CGRect(x: 0,y: frame.maxY-2.5,width: frame.width,height: 5)
-                self._archivebar!.autoresizingMask = [.flexibleWidth, .flexibleBottomMargin]
+                self._archivebar!.autoresizingMask = [.flexibleWidth, .flexibleTopMargin]
                 self._archivebar!.isHidden = false
                 self._archivebar!.progress = 0
                 self.view.addSubview(self._archivebar!)
@@ -1259,11 +1337,13 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
                                        print("Synchronous task ended with error: \(error)")
                                        throw ArchiveError.NoCharacterSVC
                                    } else if results == nil {
-                                       print("Could not download Character JSON")
+                                       print("Could not download \(thisJSON.name)")
                                        throw ArchiveError.NoCharacterSVC
                                    }
                                 //print(response)
                                    let charSet: String.Encoding
+                                
+                                if results!.count > 0 {
                                    let encoding = CFStringConvertIANACharSetNameToEncoding(response?.textEncodingName as CFString?)
                                    if encoding != kCFStringEncodingInvalidId {
                                        let senc = CFStringConvertEncodingToNSStringEncoding(encoding)
@@ -1271,6 +1351,9 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
                                    } else {
                                        charSet = String.Encoding.utf8
                                    }
+                                    } else {
+                                        charSet = String.Encoding.utf8
+                                }
                                    let jsoncontents = String(data: results!, encoding: charSet) ?? ""
                                     jsonvalues.append("jsonfiles[\"\(thisJSON.name)\"] = \(jsoncontents);\n")
                                 if thisJSON.name == "vehicles" {
@@ -1322,8 +1405,8 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
                                    if let error = error {
                                        print("Synchronous task ended with error: \(error)")
                                        throw ArchiveError.NoCharacterSVC
-                                   } else if results == nil {
-                                       print("Could not download Character JSON")
+                                   } else if results == nil || results?.count == 0 {
+                                       print("Could not download \(thisJSON)")
                                        throw ArchiveError.NoCharacterSVC
                                    }
                                    let encoding = CFStringConvertIANACharSetNameToEncoding(response?.textEncodingName as CFString?)
@@ -1792,17 +1875,17 @@ class ViewController: UIViewController, WKUIDelegate, UIActionSheetDelegate, UIG
                 apiRequest.addValue(_cobaltAuth!, forHTTPHeaderField: "Authorization")
                 apiRequest.addValue("application/json;charset=utf-8", forHTTPHeaderField: "Content-Type")
                 apiRequest.httpBody = data.data(using: String.Encoding.utf8)
-                let (a, b, error) = URLSession.shared.syncDataTask(urlrequest: apiRequest)
+                let (_, _, error) = URLSession.shared.syncDataTask(urlrequest: apiRequest)
                 if let error = error {
                     print("Synchronous task ended with error: \(error)")
                     return false
                 } else {
                     return true
                 }
-            } catch let e {
+            } /*catch let e {
                 print ("Could not send API call: \(e)")
                 return false
-            }
+            }*/
         }
         return false
     }
@@ -1950,10 +2033,10 @@ extension ViewController: WKScriptMessageHandler {
                 request.httpMethod = "POST"
                 do {
                     request.httpBody = (message.body as! String).data(using: String.Encoding.utf8)
-                } catch let error {
+                } /*catch let error {
                     print("Error with json")
                     print(error.localizedDescription)
-                }
+                }*/
                 request.addValue("application/json", forHTTPHeaderField: "Content-Type")
                 request.addValue("application/json", forHTTPHeaderField: "Accept")
                 let task = session.dataTask(with: request, completionHandler: { data, response, error in
@@ -1967,8 +2050,13 @@ extension ViewController: WKScriptMessageHandler {
 
                     do {
                         //create json object from data
-                        guard let json = try JSONSerialization.jsonObject(with: data, options: .mutableContainers) as? [String: Any] else {
+                        guard (try JSONSerialization.jsonObject(with: data, options: .mutableContainers) as? [String: Any]) != nil else {
                             return
+                        }
+                        if ((message.body as! String).contains("Vicious Mockery")) {
+                            let insult = self.lastInsult ?? VMInsults().insult
+                            self.sendMessageToE("\"\(insult)\"")
+                            self.lastInsult = VMInsults().insult
                         }
                         //print(json)
                     } catch let error {
@@ -1986,6 +2074,8 @@ extension ViewController: WKScriptMessageHandler {
                         UIApplication.shared.open(url, options: [:], completionHandler: nil)
                     }
                 }
+            } else if message.body as? String == "AppLogout" {
+                doLogout()
             } else if message.body as? String == "LoadImages" {
                 do {
                     let imgjs = try String(contentsOfFile: Bundle.main.path(forResource: "imgpreload", ofType: "js")!)

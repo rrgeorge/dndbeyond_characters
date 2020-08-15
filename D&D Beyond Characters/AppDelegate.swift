@@ -41,12 +41,25 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // Called when the application is about to terminate. Save data if appropriate. See also applicationDidEnterBackground:.
     }
 
-    func application(_ application: UIApplication, shouldSaveApplicationState coder: NSCoder) -> Bool {
+    func application(_ application: UIApplication, shouldSaveSecureApplicationState coder: NSCoder) -> Bool {
+        return true
+    }
+    func application(_ application: UIApplication, shouldRestoreSecureApplicationState coder: NSCoder) -> Bool {
         return true
     }
     
-    func application(_ application: UIApplication, shouldRestoreApplicationState coder: NSCoder) -> Bool {
-        return true
+    @available(iOS 13.0, *)
+    override func buildMenu(with builder: UIMenuBuilder) {
+        super.buildMenu(with: builder)
+        
+        guard builder.system == UIMenuSystem.main else { return }
+        
+        let rollCommand = UIKeyCommand(title: "Roll Some Dice", image: nil, action: #selector(ViewController.parseToRollDice), input: "r", modifierFlags: [.command], propertyList: nil, alternates: [], discoverabilityTitle: "Roll Some Dice", attributes: [], state: .off)
+        //let rollMenu = UIMenu(title: "", options: .displayInline, children: [rollCommand])
+        //builder.insertSibling(rollMenu, beforeMenu: .close)
+        let logoutCommand = UIKeyCommand(title: "Logout of D&D Beyond", image: nil, action: #selector(ViewController.doLogout), input: "l", modifierFlags: [.command,.shift], propertyList: nil, alternates: [], discoverabilityTitle: "Logout of D&D Beyond", attributes: [.destructive], state: .off)
+        let theMenu = UIMenu(title: "", options: .displayInline, children: [rollCommand,logoutCommand])
+        builder.insertSibling(theMenu, beforeMenu: .close)
     }
 }
 

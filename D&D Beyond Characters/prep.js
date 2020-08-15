@@ -529,7 +529,7 @@ var send_proto_repl = function send(data) {
         }
         
         for (var key in jsonfiles) {
-            if ((this._url.includes(key) && this._url.startsWith("https://character-service.")) || (this._url.includes("game-data/spells") && key == "spelllist_" + new URLSearchParams(this._url).get("classId")) || (this._url.endsWith(jsonfiles["characterjson"].data.id) && key == "characterjson") || this._url == key) {
+            if ((this._url.includes(key) && this._url.startsWith("https://character-service.")) || (this._url.includes("game-data/spells") && key == "spelllist_" + new URLSearchParams(this._url).get("classId")) || (this._url == "https://character-service.dndbeyond.com/character/v3/character/" + jsonfiles["characterjson"].data.id && key == "characterjson") || this._url == key) {
                 this.status = 200;
                 this.statusText = "OK";
                 this.response = jsonfiles[key]
@@ -568,7 +568,7 @@ var send_proto_repl2 = function send(data) {
         if (typeof jsonfiles !== 'undefined') {
             console.log("Checking cache")
             for (var key in jsonfiles) {
-                if ((this._url.includes(key) && this._url.startsWith("https://character-service.")) || (this._url.includes("game-data/spells") && key == "spelllist_" + new URLSearchParams(this._url).get("classId")) || (this._url.endsWith(jsonfiles["characterjson"].data.id) && key == "characterjson") || this._url == key) {
+                if ((this._url.includes(key) && this._url.startsWith("https://character-service.")) || (this._url.includes("game-data/spells") && key == "spelllist_" + new URLSearchParams(this._url).get("classId")) || (this._url == "https://character-service.dndbeyond.com/character/v3/character/" + jsonfiles["characterjson"].data.id && key == "characterjson") || this._url == key) {
                     Object.defineProperty(this,'readyState', { configurable: true, writable: true, });
                     Object.defineProperty(this,'status', { configurable: true, writable: true, });
                     Object.defineProperty(this,'statusText', { configurable: true, writable: true, });
@@ -648,7 +648,9 @@ updateOnlineStatus();
 var config = { attributes: true, childList: true, subtree: true };
 
 var callback = function(mutation, observer) {
-    
+    if (window.location.pathname.startsWith("/error")) {
+        return
+    }
     var siteBar = document.getElementsByClassName('site-bar');
     var siteHeader = document.getElementsByClassName('main');
     if (siteBar[0]) {
@@ -695,7 +697,7 @@ var callback = function(mutation, observer) {
 
     var popoutmenu = document.getElementsByClassName("ct-character-manage-pane__menu");
     if (popoutmenu[0] && !document.getElementById("backtolistitem")) {
-        var menuitem,menuprefs
+        var menuitem,menuprefs,menulogout;
         for(var i=0,menuitems=popoutmenu[0].getElementsByClassName('ct-pane-menu__item'),len=menuitems.length;i<len;i++){
             if (menuitems[i].getElementsByClassName('ct-pane-menu__item-label')[0].textContent == "Change Portrait") {
                 menuitem = menuitems[i].cloneNode(true);
@@ -703,6 +705,10 @@ var callback = function(mutation, observer) {
             if (menuitems[i].getElementsByClassName('ct-pane-menu__item-label')[0].textContent == "Preferences") {
                 menuprefs = menuitems[i].cloneNode(true);
             }
+            if (menuitems[i].getElementsByClassName('ct-pane-menu__item-label')[0].textContent == "Preferences") {
+                menulogout = menuitems[i].cloneNode(true);
+            }
+
         }
         
         menuitem.id = "backtolistitem";
@@ -725,6 +731,15 @@ var callback = function(mutation, observer) {
                                     AndroidApp.navFunction("AppSetting");
                                   }});
         popoutmenu[0].firstChild.appendChild(menuprefs);
+        menulogout.id = "applogout";
+        menulogout.getElementsByClassName('ct-pane-menu__item-label')[0].innerText = "Logout"
+        menulogout.addEventListener("click", function(){
+                                  if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.navFunction) {
+                                    window.webkit.messageHandlers.navFunction.postMessage("AppLogout");
+                                  } else if (AndroidApp && AndroidApp.navFunction) {
+                                    AndroidApp.navFunction("AppLogout");
+                                  }});
+        popoutmenu[0].firstChild.appendChild(menulogout);
     }
     if (document.getElementsByClassName("ct-quick-nav--closed")[0]) {
         document.getElementsByClassName("ct-quick-nav--closed")[0].style.top = "";
@@ -770,6 +785,9 @@ var callback = function(mutation, observer) {
     if (mutation) {
         for (let i=0;i<mutation.length;i++) {
             for (let m=0;m<mutation[i].addedNodes.length;m++) {
+                if (mutation[i].addedNodes[m].nodeType != Node.ELEMENT_NODE) {
+                    continue;
+                }
                 var results = mutation[i].addedNodes[m].getElementsByClassName('dice_result');
                 if (results.length > 0) {
                     let character_name = document.getElementsByClassName('ddbc-character-name')[0].textContent;
@@ -793,6 +811,14 @@ var callback = function(mutation, observer) {
                         rolljson.content.type = roll_type;
                     } else if (roll_type == "to hit") {
                         rolljson.content.type = "attack";
+                    }
+                    let dicetoolbar = document.getElementsByClassName('dice-toolbar')[0];
+                    if (dicetoolbar) {
+                        let color = window.getComputedStyle(dicetoolbar).backgroundColor.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
+                        if (color) {
+                            let colorHex = ("0"+parseInt(color[1]).toString(16)).slice(-2) + ("0"+parseInt(color[2]).toString(16)).slice(-2) + ("0"+parseInt(color[3]).toString(16)).slice(-2);
+                            rolljson.color = colorHex;
+                        }
                     }
                     if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.sendRoll) {
                         window.webkit.messageHandlers.sendRoll.postMessage(JSON.stringify(rolljson));
@@ -826,6 +852,14 @@ var callback = function(mutation, observer) {
                         "type":    "chat",
                         "content": results[0].innerText
                         };
+                    let dicetoolbar = document.getElementsByClassName('dice-toolbar')[0];
+                    if (dicetoolbar) {
+                        let color = window.getComputedStyle(dicetoolbar).backgroundColor.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
+                        if (color) {
+                            let colorHex = ("0"+parseInt(color[1]).toString(16)).slice(-2) + ("0"+parseInt(color[2]).toString(16)).slice(-2) + ("0"+parseInt(color[3]).toString(16)).slice(-2);
+                            msgjson.color = colorHex;
+                        }
+                    }
                     sendtoEButton.addEventListener('click',function(){
                         if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.sendRoll) {
                             window.webkit.messageHandlers.sendRoll.postMessage(JSON.stringify(msgjson));

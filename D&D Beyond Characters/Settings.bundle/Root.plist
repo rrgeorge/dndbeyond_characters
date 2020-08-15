@@ -30,6 +30,22 @@
 			<key>IsSecure</key>
 			<false/>
 		</dict>
+		<dict>
+			<key>Title</key>
+			<string>Clear data</string>
+			<key>Type</key>
+			<string>PSGroupSpecifier</string>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSToggleSwitchSpecifier</string>
+			<key>Title</key>
+			<string>Delete all cache and cookies and logout at next launch</string>
+			<key>Key</key>
+			<string>clearAllData</string>
+			<key>DefaultValue</key>
+			<false/>
+		</dict>
 	</array>
 </dict>
 </plist>
