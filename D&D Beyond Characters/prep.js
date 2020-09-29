@@ -807,7 +807,7 @@ var callback = function(mutation, observer) {
                                             "name":	roll_title
                                     }
                             };
-                    if (["check","save","attack","damage"].includes(roll_type)) {
+                    if (["check","save","attack","damage","heal"].includes(roll_type)) {
                         rolljson.content.type = roll_type;
                     } else if (roll_type == "to hit") {
                         rolljson.content.type = "attack";
@@ -816,7 +816,7 @@ var callback = function(mutation, observer) {
                     if (dicetoolbar) {
                         let color = window.getComputedStyle(dicetoolbar).backgroundColor.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
                         if (color) {
-                            let colorHex = ("0"+parseInt(color[1]).toString(16)).slice(-2) + ("0"+parseInt(color[2]).toString(16)).slice(-2) + ("0"+parseInt(color[3]).toString(16)).slice(-2);
+                            let colorHex = "#" + ("0"+parseInt(color[1]).toString(16)).slice(-2) + ("0"+parseInt(color[2]).toString(16)).slice(-2) + ("0"+parseInt(color[3]).toString(16)).slice(-2);
                             rolljson.color = colorHex;
                         }
                     }
@@ -856,7 +856,7 @@ var callback = function(mutation, observer) {
                     if (dicetoolbar) {
                         let color = window.getComputedStyle(dicetoolbar).backgroundColor.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
                         if (color) {
-                            let colorHex = ("0"+parseInt(color[1]).toString(16)).slice(-2) + ("0"+parseInt(color[2]).toString(16)).slice(-2) + ("0"+parseInt(color[3]).toString(16)).slice(-2);
+                            let colorHex = "#" + ("0"+parseInt(color[1]).toString(16)).slice(-2) + ("0"+parseInt(color[2]).toString(16)).slice(-2) + ("0"+parseInt(color[3]).toString(16)).slice(-2);
                             msgjson.color = colorHex;
                         }
                     }
