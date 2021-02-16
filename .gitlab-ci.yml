@@ -7,4 +7,7 @@ build_proj:
   - xcode
  script:
   - xcodebuild clean -project "D&D Beyond Characters.xcodeproj" -scheme "D&D Beyond Characters"
-  - xcodebuild archive -project "D&D Beyond Characters.xcodeproj" -scheme "D&D Beyond Characters"
+  - xcodebuild archive -project "D&D Beyond Characters.xcodeproj" -scheme "D&D Beyond Characters" -archivePath DDBCharacters.xcarchive
+ artifacts:
+     paths:
+         - DDBCharacters.xcarchive
