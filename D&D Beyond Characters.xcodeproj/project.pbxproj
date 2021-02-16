@@ -477,7 +477,7 @@
 				CODE_SIGN_ENTITLEMENTS = "D&D Beyond Characters/D&D Beyond Characters.entitlements";
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 76;
+				CURRENT_PROJECT_VERSION = 77;
 				DEVELOPMENT_TEAM = 97869B6X2R;
 				INFOPLIST_FILE = "D&D Beyond Characters/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -500,7 +500,7 @@
 				CODE_SIGN_ENTITLEMENTS = "D&D Beyond Characters/D&D Beyond Characters.entitlements";
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 76;
+				CURRENT_PROJECT_VERSION = 77;
 				DEVELOPMENT_TEAM = 97869B6X2R;
 				INFOPLIST_FILE = "D&D Beyond Characters/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
